@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Painel da barbearia | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="list-toolbar">
+    <div>
+        <p class="subtle-label">PAINEL DO ESTABELECIMENTO</p>
+        <h1 class="h3 mb-1">{{ shop.business_name }}</h1>
+        <p class="text-secondary mb-0">{{ shop.address }}</p>
+    </div>
+    <a href="{{ url_for('main.business_profile') }}" class="btn btn-outline-dark">Editar perfil e localização</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="stat-card"><span>Clientes atendidos</span><strong>{{ counts.clients }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><span>Barbeiros</span><strong>{{ counts.barbers }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><span>Serviços</span><strong>{{ counts.services }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="stat-card"><span>Agendamentos</span><strong>{{ counts.appointments }}</strong></div></div>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-4">
+    <a class="btn btn-dark" href="{{ url_for('main.appointments') }}">Abrir agenda</a>
+    <a class="btn btn-outline-dark" href="{{ url_for('main.barbers') }}">Gerenciar equipe</a>
+    <a class="btn btn-outline-dark" href="{{ url_for('main.services') }}">Editar catálogo e preços</a>
+    <a class="btn btn-outline-dark" href="{{ url_for('main.browse_barbershops') }}">Ver perfil público</a>
+</div>
+
+<div class="card shadow-sm border-0 section-card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h5 mb-0">Agendamentos recentes</h2>
+            <a target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}">Abrir rota no Google Maps</a>
+        </div>
+        {% if shop.location_is_approximate %}
+        <p class="small text-warning-emphasis">Atenção: o ponto no mapa é aproximado. Atualize-o no perfil antes de divulgar.</p>
+        {% endif %}
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>Cliente</th><th>Barbeiro</th><th>Serviço</th><th>Data e hora</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                    <tr><td>{{ appointment.client_name }}</td><td>{{ appointment.barber_name }}</td><td>{{ appointment.service_name }}</td><td>{{ appointment.starts_at }}</td><td>{{ appointment.status }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-secondary py-4">Ainda não há agendamentos.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Barbeiros | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <p class="text-uppercase text-muted small mb-1">Equipe</p>
+        <h1 class="h3 mb-0">Barbeiros</h1>
+    </div>
+    <a href="{{ url_for('main.create_barber') }}" class="btn btn-dark">Novo barbeiro</a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefone</th>
+                        <th>Especialidade</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for barber in barbers %}
+                    <tr>
+                        <td>{{ barber.full_name }}</td>
+                        <td>{{ barber.phone }}</td>
+                        <td>{{ barber.specialty or '-' }}</td>
+                        <td>
+                            {% if barber.status == 'active' %}
+                                <span class="badge text-bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge text-bg-secondary">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('main.edit_barber', barber_id=barber.id) }}" class="btn btn-sm btn-outline-dark">Editar</a>
+                                <form action="{{ url_for('main.delete_barber', barber_id=barber.id) }}" method="post">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">Nenhum barbeiro cadastrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

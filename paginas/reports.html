@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="list-toolbar">
+    <div>
+        <p class="subtle-label">Operação</p>
+        <h1 class="h3 mb-0">Relatórios</h1>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4 filter-panel">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="start_date">Data inicial</label>
+                <input id="start_date" name="start_date" type="date" class="form-control" value="{{ start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="end_date">Data final</label>
+                <input id="end_date" name="end_date" type="date" class="form-control" value="{{ end_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="barber_id">Barbeiro</label>
+                <select id="barber_id" name="barber_id" class="form-select">
+                    <option value="">Todos</option>
+                    {% for barber in barbers %}
+                    <option value="{{ barber.id }}" {% if selected_barber_id == barber.id %}selected{% endif %}>{{ barber.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-dark w-100">Filtrar</button>
+                <a href="{{ url_for('main.reports') }}" class="btn btn-outline-dark w-100">Limpar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4 filter-panel">
+    <div class="card-body">
+        <div class="section-heading mb-3">
+            <h2 class="h5 mb-0">Votação dos clientes</h2>
+        </div>
+        <form method="post" action="{{ url_for('main.vote_for_service') }}" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label" for="service_vote_id">Serviço</label>
+                <select id="service_vote_id" name="service_id" class="form-select">
+                    {% for service in services %}
+                    <option value="{{ service.id }}">{{ service.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label" for="client_vote_id">Cliente</label>
+                <select id="client_vote_id" name="client_id" class="form-select">
+                    {% for client in clients %}
+                    <option value="{{ client.id }}">{{ client.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-dark">Votar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4 mb-4 summary-grid">
+    <div class="col-md-3">
+        <div class="summary-card">
+            <p class="stat-label">Agendamentos</p>
+            <h2>{{ total_appointments }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="summary-card accent">
+            <p class="stat-label">Faturamento</p>
+            <h2>R$ {{ '%.2f'|format(revenue_total / 100) }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="summary-card">
+            <p class="stat-label">Agendados</p>
+            <h2>{{ scheduled_total }}</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="summary-card gold">
+            <p class="stat-label">Confirmados</p>
+            <h2>{{ confirmed_total }}</h2>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4 report-table-card">
+    <div class="card-body">
+        <div class="section-heading mb-3">
+            <h2 class="h5 mb-0">Faturamento por dia</h2>
+        </div>
+        {% if daily_summary %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Dia</th>
+                        <th>Agendamentos</th>
+                        <th>Receita</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in daily_summary %}
+                    <tr>
+                        <td>{{ day.day }}</td>
+                        <td>{{ day.total_appointments }}</td>
+                        <td>R$ {{ '%.2f'|format(day.revenue_total / 100) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="mb-0 text-secondary">Nenhum dado de faturamento para esse período.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4 mb-4 performance-grid">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 report-table-card">
+            <div class="card-body">
+                <div class="section-heading mb-3">
+                    <h2 class="h5 mb-0">Desempenho por barbeiro</h2>
+                </div>
+                <div class="performance-list">
+                    {% for barber in barber_summary %}
+                    {% set width = 0 if max_barber_revenue == 0 else (barber.revenue_total / max_barber_revenue) * 100 %}
+                    <div class="performance-item">
+                        <div class="performance-header">
+                            <span>{{ barber.full_name }}</span>
+                            <strong>R$ {{ '%.2f'|format(barber.revenue_total / 100) }}</strong>
+                        </div>
+                        <div class="performance-bar">
+                            <span style="width: {{ width }}%"></span>
+                        </div>
+                        <small>{{ barber.appointment_count }} agendamentos</small>
+                    </div>
+                    {% else %}
+                    <p class="mb-0 text-secondary">Sem dados para esse período.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 report-table-card">
+            <div class="card-body">
+                <div class="section-heading mb-3">
+                    <h2 class="h5 mb-0">Serviços mais procurados</h2>
+                </div>
+                <div class="performance-list">
+                    {% for service in service_summary %}
+                    {% set width = 0 if max_service_revenue == 0 else (service.revenue_total / max_service_revenue) * 100 %}
+                    <div class="performance-item">
+                        <div class="performance-header">
+                            <span>{{ service.name }}</span>
+                            <strong>R$ {{ '%.2f'|format(service.revenue_total / 100) }}</strong>
+                        </div>
+                        <div class="performance-bar">
+                            <span style="width: {{ width }}%"></span>
+                        </div>
+                        <small>{{ service.appointment_count }} agendamentos</small>
+                    </div>
+                    {% else %}
+                    <p class="mb-0 text-secondary">Sem dados para esse período.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 report-table-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Barbeiro</th>
+                        <th>Serviço</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in reports %}
+                    <tr>
+                        <td>{{ appointment.starts_at[:10] }}</td>
+                        <td>{{ appointment.client_name }}</td>
+                        <td>{{ appointment.barber_name }}</td>
+                        <td>{{ appointment.service_name }}</td>
+                        <td>R$ {{ '%.2f'|format(appointment.price_cents / 100) }}</td>
+                        <td>
+                            {% if appointment.status == 'scheduled' %}
+                                <span class="badge text-bg-secondary">Agendado</span>
+                            {% elif appointment.status == 'confirmed' %}
+                                <span class="badge text-bg-primary">Confirmado</span>
+                            {% elif appointment.status == 'completed' %}
+                                <span class="badge text-bg-success">Concluído</span>
+                            {% elif appointment.status == 'cancelled' %}
+                                <span class="badge text-bg-danger">Cancelado</span>
+                            {% else %}
+                                <span class="badge text-bg-warning text-dark">No Show</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">Nenhum agendamento encontrado para o período.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

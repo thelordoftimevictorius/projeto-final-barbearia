@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="auth-shell">
+    <div class="auth-panel">
+        <div class="auth-visual" aria-label="Ilustração de barbearia premium">
+            <div class="auth-visual-badge">
+                <span>Barber Manager</span>
+                <strong>Gestão premium</strong>
+            </div>
+        </div>
+
+        <div class="auth-form-panel">
+            <div class="auth-form-header">
+                <p class="eyebrow mb-2">BARBER MANAGER</p>
+                <h1 class="h3 mb-2">Acessar painel</h1>
+                <p class="auth-subtitle">Controle de agenda, clientes, barbeiros e faturamento em um só lugar.</p>
+            </div>
+
+            {% if error %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+            {% endif %}
+
+            <form method="post" class="auth-form">
+                <div class="mb-3">
+                    <label for="email" class="form-label">E-mail</label>
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        class="form-control"
+                        placeholder="seu@email.com"
+                        required
+                    >
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Senha</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        class="form-control"
+                        placeholder="Digite sua senha"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-dark w-100">Entrar no painel</button>
+            </form>
+
+            <p class="text-center mt-3 mb-0">
+                Ainda não tem conta?
+                <a href="{{ url_for('main.register_client') }}" class="link-dark fw-semibold">Cadastre-se como cliente</a>
+            </p>
+            <p class="text-center mt-2 mb-0">
+                Tem uma barbearia?
+                <a href="{{ url_for('main.register_barbershop') }}" class="link-dark fw-semibold">Criar acesso empresarial</a>
+            </p>
+
+            <div class="auth-demo-box">
+                <span>Demo</span>
+                <strong>admin@barber.local / admin123</strong>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

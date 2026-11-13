@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <p class="text-uppercase text-muted small mb-2">Barber Manager</p>
+                <h1 class="h3 mb-4">Acessar painel</h1>
+
+                {% if error %}
+                    <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endif %}
+
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">E-mail</label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            class="form-control"
+                            value="admin@barber.local"
+                            required
+                        >
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Senha</label>
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            class="form-control"
+                            value="admin123"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-dark w-100">Entrar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

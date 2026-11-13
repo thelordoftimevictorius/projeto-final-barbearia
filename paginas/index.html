@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Barber Manager | Barbearia bem cuidada, atendimento sem complicação{% endblock %}
+{% block page_styles %}
+<link href="{{ url_for('static', filename='css/pagina_inicial.css') }}" rel="stylesheet">
+{% endblock %}
+{% block main_classes %}landing-shell{% endblock %}
+
+{% block content %}
+<div class="landing-page">
+    <header class="landing-nav">
+        <a class="landing-brand" href="{{ url_for('main.home') }}" aria-label="Barber Manager - início">
+            <span class="landing-brand-mark">BM</span>
+            <span>BARBER <strong>MANAGER</strong></span>
+        </a>
+
+        <nav class="landing-nav-links" aria-label="Navegação da página inicial">
+            <a href="#plataforma">A plataforma</a>
+            <a href="#clientes">Para clientes</a>
+            <a href="#barbearias">Para barbearias</a>
+            <a href="{{ url_for('main.browse_barbershops') }}">Encontrar barbearias</a>
+        </nav>
+
+        <div class="landing-nav-actions">
+            {% if current_user.is_authenticated %}
+            <a class="landing-login-link" href="{{ url_for('main.dashboard') }}">Meu painel</a>
+            {% else %}
+            <a class="landing-login-link" href="{{ url_for('main.login') }}">Entrar</a>
+            <a class="landing-nav-cta" href="{{ url_for('main.register_client') }}">Criar conta</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <section class="landing-hero">
+        <div class="landing-hero-photo" role="img" aria-label="Barbeiro atendendo um cliente em uma barbearia"></div>
+        <div class="landing-hero-shade"></div>
+        <div class="landing-hero-content">
+            <span class="landing-eyebrow"><span></span> O cuidado de sempre. Uma experiência melhor.</span>
+            <h1>Seu estilo merece um lugar na <em>agenda.</em></h1>
+            <p>
+                Uma plataforma feita para aproximar clientes e barbearias.
+                Encontre seu próximo atendimento, escolha o serviço e organize
+                seu horário com praticidade.
+            </p>
+            <div class="landing-hero-actions">
+                <a class="landing-button landing-button-light" href="{{ url_for('main.register_client') }}">
+                    Quero marcar meu horário <span aria-hidden="true">↗</span>
+                </a>
+                <a class="landing-text-link" href="#barbearias">Tenho uma barbearia <span aria-hidden="true">↓</span></a>
+            </div>
+            <div class="landing-hero-note">
+                <span class="landing-note-icon" aria-hidden="true">✦</span>
+                <span>Do primeiro clique ao próximo corte, tudo mais simples.</span>
+            </div>
+        </div>
+        <div class="landing-hero-caption">
+            <span>ESTILO COM PROPÓSITO</span>
+            <span>01 — 03</span>
+        </div>
+    </section>
+
+    <section class="landing-intro landing-section" id="plataforma">
+        <div class="landing-intro-heading">
+            <span class="landing-kicker">MAIS QUE UMA AGENDA</span>
+            <h2>Um novo jeito de viver a barbearia.</h2>
+        </div>
+        <div class="landing-intro-copy">
+            <p>
+                A Barber Manager ajuda a deixar a rotina mais organizada para quem
+                atende e mais conveniente para quem senta na cadeira. A ideia é
+                aproximar bons profissionais de pessoas que valorizam um serviço
+                bem-feito.
+            </p>
+            <a href="#como-funciona" class="landing-inline-link">Descubra como funciona <span aria-hidden="true">↘</span></a>
+        </div>
+    </section>
+
+    <section class="landing-benefits landing-section" id="como-funciona">
+        <div class="landing-section-heading">
+            <div>
+                <span class="landing-kicker">FEITA PARA A ROTINA REAL</span>
+                <h2>Menos desencontro.<br><em>Mais bom atendimento.</em></h2>
+            </div>
+            <p>Ferramentas simples para cuidar de cada etapa, da escolha do serviço à organização da agenda.</p>
+        </div>
+
+        <div class="landing-benefit-grid">
+            <article class="landing-benefit-card landing-benefit-card-dark">
+                <span class="landing-card-number">01 / AGENDA</span>
+                <span class="landing-benefit-icon" aria-hidden="true">
+                    <svg viewBox="0 0 32 32"><rect x="4.5" y="7" width="23" height="21" rx="3"></rect><path d="M10 4v6M22 4v6M5 13h22M11 19h4M11 23h10"></path></svg>
+                </span>
+                <h3>Horários mais organizados</h3>
+                <p>Consulte os atendimentos e peça um horário sem depender de conversas intermináveis.</p>
+                <span class="landing-card-arrow" aria-hidden="true">↗</span>
+            </article>
+
+            <article class="landing-benefit-card">
+                <span class="landing-card-number">02 / SERVIÇOS</span>
+                <span class="landing-benefit-icon" aria-hidden="true">
+                    <svg viewBox="0 0 32 32"><path d="m7 25 17-17M6 8l3-3 6 6-3 3-6-6ZM17 19l3-3 6 6-3 3-6-6ZM5 27l5-5"></path></svg>
+                </span>
+                <h3>Escolha com clareza</h3>
+                <p>Veja os serviços disponíveis, conheça os valores e escolha o que combina com você.</p>
+                <span class="landing-card-arrow" aria-hidden="true">↗</span>
+            </article>
+
+            <article class="landing-benefit-card landing-benefit-card-photo">
+                <div class="landing-benefit-photo" role="img" aria-label="Detalhes de ferramentas de barbeiro"></div>
+                <div class="landing-photo-overlay"></div>
+                <span class="landing-card-number">03 / PROFISSIONAIS</span>
+                <div class="landing-photo-copy">
+                    <h3>Valorize quem entende do seu estilo.</h3>
+                    <p>Conheça a equipe e encontre o profissional certo para o seu próximo visual.</p>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="landing-audience landing-section" id="clientes">
+        <div class="landing-audience-photo" role="img" aria-label="Cliente aproveitando atendimento em uma barbearia"></div>
+        <div class="landing-audience-copy">
+            <span class="landing-kicker">PARA VOCÊ, CLIENTE</span>
+            <h2>Seu próximo corte começa com uma boa escolha.</h2>
+            <p>
+                Crie seu acesso, confira os serviços e profissionais disponíveis
+                e solicite um horário. Depois, acompanhe seus agendamentos pelo
+                seu próprio painel.
+            </p>
+            <a class="landing-button landing-button-dark" href="{{ url_for('main.register_client') }}">
+                Criar minha conta <span aria-hidden="true">↗</span>
+            </a>
+            <span class="landing-audience-footnote">Leva poucos minutos para começar.</span>
+        </div>
+    </section>
+
+    <section class="landing-business landing-section" id="barbearias">
+        <div class="landing-business-copy">
+            <span class="landing-kicker">PARA QUEM FAZ ACONTECER</span>
+            <h2>Sua barbearia tem personalidade. Sua gestão também pode ter.</h2>
+            <p>
+                Organize a equipe, os serviços e os atendimentos em um só lugar.
+                A Barber Manager está sendo construída para apoiar o dia a dia
+                de quem administra uma barbearia e de quem recebe seus clientes.
+            </p>
+            <ul class="landing-business-list">
+                <li><span aria-hidden="true">✓</span> Acompanhe os agendamentos e a rotina de atendimento</li>
+                <li><span aria-hidden="true">✓</span> Mantenha serviços, preços e equipe organizados</li>
+                <li><span aria-hidden="true">✓</span> Tenha informações importantes da operação em um painel</li>
+            </ul>
+            <a class="landing-button landing-button-light" href="{{ url_for('main.register_barbershop') }}">
+                Cadastrar minha barbearia <span aria-hidden="true">↗</span>
+            </a>
+            <span class="landing-business-footnote">O cadastro autônomo de barbearias ainda não está disponível nesta etapa da plataforma.</span>
+        </div>
+        <div class="landing-business-visual">
+            <div class="landing-business-photo" role="img" aria-label="Interior acolhedor de uma barbearia"></div>
+            <div class="landing-business-stamp">
+                <span>SEU ESPAÇO</span>
+                <strong>Seu jeito<br>de atender.</strong>
+                <span class="landing-stamp-mark" aria-hidden="true">BM</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="landing-final-cta">
+        <span class="landing-kicker">SEU PRÓXIMO PASSO</span>
+        <h2>Um bom atendimento começa antes da cadeira.</h2>
+        <p>Faça parte de uma experiência de barbearia mais próxima, organizada e cheia de estilo.</p>
+        <div class="landing-final-actions">
+            {% if current_user.is_authenticated %}
+            <a class="landing-button landing-button-light" href="{{ url_for('main.dashboard') }}">Continuar para meu painel <span aria-hidden="true">↗</span></a>
+            {% else %}
+            <a class="landing-button landing-button-light" href="{{ url_for('main.register_client') }}">Começar como cliente <span aria-hidden="true">↗</span></a>
+            <a class="landing-final-login" href="{{ url_for('main.login') }}">Já tenho acesso</a>
+            {% endif %}
+        </div>
+    </section>
+
+    <footer class="landing-footer">
+        <a class="landing-brand landing-brand-footer" href="{{ url_for('main.home') }}">
+            <span class="landing-brand-mark">BM</span>
+            <span>BARBER <strong>MANAGER</strong></span>
+        </a>
+        <span>Uma experiência melhor para quem corta e para quem cuida.</span>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('main.dashboard') }}">Meu painel <span aria-hidden="true">↗</span></a>
+        {% else %}
+        <a href="{{ url_for('main.login') }}">Entrar na plataforma <span aria-hidden="true">↗</span></a>
+        {% endif %}
+    </footer>
+</div>
+{% endblock %}

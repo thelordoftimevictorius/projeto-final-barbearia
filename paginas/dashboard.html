@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Painel | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow mb-2">BARBER MANAGER</p>
+        <h1 class="h3 mb-0">Bem-vindo, {{ current_user.full_name }}</h1>
+    </div>
+    <a href="{{ url_for('main.logout') }}" class="btn btn-outline-dark">Sair</a>
+</div>
+
+<div class="row g-4 mb-4 align-items-stretch">
+    <div class="col-lg-4">
+        <div class="dashboard-visual-card">
+            <div class="dashboard-visual-image" aria-label="Ilustração de estética masculina premium"></div>
+            <div class="dashboard-visual-info">
+                <span class="mini-label">Status geral</span>
+                <strong>Operação em alta</strong>
+                <small>Atendimento com agenda organizada e faturamento em evolução.</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <p class="stat-label">Clientes</p>
+                    <h2>{{ clients_count }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <p class="stat-label">Barbeiros</p>
+                    <h2>{{ barbers_count }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <p class="stat-label">Serviços</p>
+                    <h2>{{ services_count }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card accent-card">
+                    <p class="stat-label">Agendamentos</p>
+                    <h2>{{ appointments_count }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <p class="stat-label">Hoje</p>
+                    <h2>{{ today_count }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <p class="stat-label">Agendados</p>
+                    <h2>{{ scheduled_count }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <p class="stat-label">Confirmados</p>
+                    <h2>{{ confirmed_count }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card revenue-card">
+                    <p class="stat-label">Faturamento</p>
+                    <h2>R$ {{ '%.2f'|format(revenue_total / 100) }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.role == 'admin' %}
+<div class="card section-card mt-4">
+    <div class="card-body">
+        <div class="section-heading mb-3">
+            <h2 class="h5 mb-0">Cadastros rápidos</h2>
+        </div>
+        <div class="quick-access-grid">
+            <div class="quick-access-card">
+                <span class="mini-label">Cadastro geral</span>
+                <strong>Serviços</strong>
+                <small>Gerencie preços, duração e disponibilidade dos serviços da barbearia.</small>
+                <div class="quick-access-actions">
+                    <a href="{{ url_for('main.services') }}" class="btn btn-sm btn-outline-dark">Listar</a>
+                    <a href="{{ url_for('main.create_service') }}" class="btn btn-sm btn-dark">Novo</a>
+                </div>
+            </div>
+            <div class="quick-access-card">
+                <span class="mini-label">Equipe</span>
+                <strong>Barbeiros</strong>
+                <small>Cadastre barbeiros, especialidades e status de atuação.</small>
+                <div class="quick-access-actions">
+                    <a href="{{ url_for('main.barbers') }}" class="btn btn-sm btn-outline-dark">Listar</a>
+                    <a href="{{ url_for('main.create_barber') }}" class="btn btn-sm btn-dark">Novo</a>
+                </div>
+            </div>
+            <div class="quick-access-card">
+                <span class="mini-label">Clientes</span>
+                <strong>Clientes</strong>
+                <small>Registre clientes, contatos e dados relevantes para o atendimento.</small>
+                <div class="quick-access-actions">
+                    <a href="{{ url_for('main.clients') }}" class="btn btn-sm btn-outline-dark">Listar</a>
+                    <a href="{{ url_for('main.create_client') }}" class="btn btn-sm btn-dark">Novo</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card section-card mt-4">
+    <div class="card-body">
+        <div class="section-heading">
+            <h2 class="h5 mb-0">Agenda de hoje</h2>
+        </div>
+        {% if todays_appointments %}
+        <div class="table-responsive mt-3">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Hora</th>
+                        <th>Cliente</th>
+                        <th>Barbeiro</th>
+                        <th>Serviço</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in todays_appointments %}
+                    <tr>
+                        <td>{{ appointment.starts_at[11:16] }}</td>
+                        <td>{{ appointment.client_name }}</td>
+                        <td>{{ appointment.barber_name }}</td>
+                        <td>{{ appointment.service_name }}</td>
+                        <td>
+                            {% if appointment.status == 'scheduled' %}
+                                <span class="badge text-bg-secondary">Agendado</span>
+                            {% elif appointment.status == 'confirmed' %}
+                                <span class="badge text-bg-primary">Confirmado</span>
+                            {% elif appointment.status == 'completed' %}
+                                <span class="badge text-bg-success">Concluído</span>
+                            {% elif appointment.status == 'cancelled' %}
+                                <span class="badge text-bg-danger">Cancelado</span>
+                            {% else %}
+                                <span class="badge text-bg-warning text-dark">No Show</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="mb-0 text-secondary mt-3">Nenhum agendamento para hoje.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card section-card mt-4">
+    <div class="card-body">
+        <div class="section-heading mb-3">
+            <h2 class="h5 mb-0">Top 10 do mês</h2>
+        </div>
+        {% if top_services_this_month %}
+        <div class="leaderboard-list">
+            {% for service in top_services_this_month %}
+            {% set width = 0 if max_monthly_votes == 0 else (service.vote_count / max_monthly_votes) * 100 %}
+            <div class="leaderboard-item">
+                <div class="leaderboard-header">
+                    <div class="leaderboard-title">
+                        <span class="leaderboard-rank {% if loop.index == 1 %}medal-gold{% elif loop.index == 2 %}medal-silver{% elif loop.index == 3 %}medal-bronze{% endif %}">
+                            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+                        </span>
+                        <span>{{ service.name }}</span>
+                    </div>
+                    <strong>{{ service.vote_count }} votos</strong>
+                </div>
+                <div class="leaderboard-bar">
+                    <span style="width: {{ width }}%"></span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="mb-0 text-secondary">Ainda não há votos registrados neste mês.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-6">
+        <div class="card section-card">
+            <div class="card-body">
+                <div class="section-heading mb-3">
+                    <h2 class="h5 mb-0">Barbeiros do mês</h2>
+                </div>
+                {% if top_barbers_this_month %}
+                <div class="mini-leaderboard">
+                    {% for barber in top_barbers_this_month %}
+                    {% set width = 0 if max_barber_monthly_revenue == 0 else (barber.revenue_total / max_barber_monthly_revenue) * 100 %}
+                    <div class="mini-leaderboard-item">
+                        <div class="mini-leaderboard-header">
+                            <div class="mini-leaderboard-title">
+                                <span class="mini-rank {% if loop.index == 1 %}mini-gold{% elif loop.index == 2 %}mini-silver{% elif loop.index == 3 %}mini-bronze{% endif %}">
+                                    {{ loop.index }}
+                                </span>
+                                <span>{{ barber.full_name }}</span>
+                            </div>
+                            <strong>R$ {{ '%.2f'|format(barber.revenue_total / 100) }}</strong>
+                        </div>
+                        <div class="mini-progress">
+                            <span style="width: {{ width }}%"></span>
+                        </div>
+                        <small>{{ barber.appointments_count }} atendimentos</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="mb-0 text-secondary">Nenhum atendimento registrado este mês.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card section-card">
+            <div class="card-body">
+                <div class="section-heading mb-3">
+                    <h2 class="h5 mb-0">Faturamento desta semana</h2>
+                </div>
+                <div class="highlight-stat">
+                    <span class="mini-label">Receita</span>
+                    <strong>R$ {{ '%.2f'|format(weekly_summary.revenue_total / 100) }}</strong>
+                    <small>{{ weekly_summary.appointments_count }} agendamentos na semana</small>
+                </div>
+                <div class="revenue-chart mt-3">
+                    {% for day in chart_days %}
+                    {% set bar_height = 0 if max_chart_value == 0 else (day.revenue_total / max_chart_value) * 100 %}
+                    <div class="chart-column">
+                        <div class="chart-bar-wrap">
+                            <span class="chart-bar" style="height: {{ bar_height }}%"></span>
+                        </div>
+                        <small>{{ day.day }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="compact-metrics mt-3">
+                    <div class="compact-metric">
+                        <span>Hoje</span>
+                        <strong>{{ today_count }}</strong>
+                    </div>
+                    <div class="compact-metric">
+                        <span>Confirmados</span>
+                        <strong>{{ confirmed_count }}</strong>
+                    </div>
+                    <div class="compact-metric">
+                        <span>Agendados</span>
+                        <strong>{{ scheduled_count }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card section-card mt-4">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Operação da barbearia</h2>
+        <p class="mb-0 text-secondary">
+            O painel acompanha a operação do negócio com foco em clientes, barbeiros,
+            serviços, agenda, faturamento bruto, ranking mensal dos serviços mais votados
+            e desempenho semanal da equipe.
+        </p>
+    </div>
+</div>
+{% endblock %}

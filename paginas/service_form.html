@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}{% if service %}Editar serviço{% else %}Novo serviço{% endif %} | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0">{% if service %}Editar serviço{% else %}Novo serviço{% endif %}</h1>
+                    <a href="{{ url_for('main.services') }}" class="btn btn-outline-dark">Voltar</a>
+                </div>
+
+                {% if error %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="name">Nome</label>
+                            <input id="name" name="name" class="form-control" value="{{ service.name if service else '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="price_cents">Preço (em centavos)</label>
+                            <input id="price_cents" name="price_cents" type="number" min="1" class="form-control" value="{{ service.price_cents if service else 0 }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="duration_minutes">Duração (minutos)</label>
+                            <input id="duration_minutes" name="duration_minutes" type="number" min="1" class="form-control" value="{{ service.duration_minutes if service else 30 }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="status">Status</label>
+                            <select id="status" name="status" class="form-select">
+                                <option value="active" {% if service and service.status == 'active' %}selected{% endif %}>Ativo</option>
+                                <option value="inactive" {% if service and service.status == 'inactive' %}selected{% endif %}>Inativo</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="description">Descrição</label>
+                            <textarea id="description" name="description" class="form-control" rows="4">{{ service.description if service else '' }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="image_url">URL da foto (HTTPS)</label>
+                            <input id="image_url" name="image_url" type="url" class="form-control" value="" placeholder="https://...">
+                            <small class="form-text text-secondary">Opcional. Ao informar uma URL, ela substitui a foto atual. Se deixar em branco, a foto atual será mantida.</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="image_file">Foto do corte ou da barba</label>
+                            <input id="image_file" name="image_file" type="file" class="form-control" accept="image/jpeg,image/png,image/webp">
+                            <small class="form-text text-secondary">JPG, PNG ou WEBP; máximo de 5 MB.</small>
+                        </div>
+                        <div class="col-12">
+                            <img
+                                id="service_photo_preview"
+                                class="service-photo-preview{% if not service or not service.image_url %} d-none{% endif %}"
+                                src="{{ service.image_url if service else '' }}"
+                                alt="Pré-visualização da foto do serviço"
+                            >
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('main.services') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-dark">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const photoInput = document.getElementById("image_file");
+    const photoUrlInput = document.getElementById("image_url");
+    const photoPreview = document.getElementById("service_photo_preview");
+
+    photoInput.addEventListener("change", () => {
+        const file = photoInput.files[0];
+        if (!file) {
+            return;
+        }
+        photoPreview.src = URL.createObjectURL(file);
+        photoPreview.classList.remove("d-none");
+    });
+
+    photoUrlInput.addEventListener("input", () => {
+        if (photoInput.files.length) {
+            return;
+        }
+        if (photoUrlInput.value.startsWith("https://")) {
+            photoPreview.src = photoUrlInput.value;
+            photoPreview.classList.remove("d-none");
+        } else {
+            photoPreview.classList.add("d-none");
+        }
+    });
+</script>
+{% endblock %}

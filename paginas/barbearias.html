@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Barbearias | Barber Manager{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+{% endblock %}
+
+{% block content %}
+<section class="barbershop-hero" aria-labelledby="barbershop-hero-title">
+    <img class="barbershop-hero-photo"
+         src="{{ url_for('static', filename='images/barbershop-hero.jpg') }}"
+         alt="Barbeiro aparando a barba de um cliente"
+         fetchpriority="high">
+    <div class="barbershop-hero-content">
+        <p class="barbershop-hero-eyebrow">BARBER MANAGER <span>•</span> SERRA TALHADA</p>
+        <h1 id="barbershop-hero-title">Seu próximo corte começa aqui.</h1>
+        <p>Encontre uma barbearia, confira os serviços e escolha o melhor horário para você.</p>
+        <div class="barbershop-hero-actions">
+            <a class="btn btn-gold" href="#barbershopMap">Explorar o mapa</a>
+            {% if current_user.is_authenticated and current_user.role == 'client' %}
+            <a class="btn btn-hero-outline" href="{{ url_for('main.appointments') }}">Agendar atendimento</a>
+            {% elif not current_user.is_authenticated %}
+            <a class="btn btn-hero-outline" href="{{ url_for('main.register_client') }}">Criar conta para agendar</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="shop-map-section mb-4" aria-labelledby="shop-map-heading">
+    <div class="shop-map-heading">
+        <div>
+            <p class="subtle-label mb-1">LOCALIZE UMA BARBEARIA</p>
+            <h2 id="shop-map-heading" class="h5 mb-1">Mapa de Serra Talhada</h2>
+            <p class="text-secondary mb-0">Os marcadores aproximados estão em ruas mapeadas. Confirme o endereço exato com a barbearia.</p>
+        </div>
+        <a class="shop-map-open" target="_blank" rel="noopener noreferrer"
+           href="https://www.openstreetmap.org/?mlat=-7.9868&amp;mlon=-38.2920#map=15/-7.9868/-38.2920">Abrir mapa completo</a>
+    </div>
+    <div id="barbershopMap" class="barbershop-map" data-selected-shop-id="{{ request.args.get('shop_id', '') }}" role="region" aria-label="Mapa interativo das barbearias"></div>
+    <noscript><p class="small text-secondary mt-2 mb-0">Ative o JavaScript para visualizar o mapa interativo.</p></noscript>
+</section>
+
+<div class="row g-4" id="barbershopCards">
+    {% for shop in shops %}
+    <div class="col-md-6 col-xl-4">
+        <article class="card h-100 shadow-sm border-0 section-card shop-card"
+                 data-shop-id="{{ shop.id }}"
+                 data-shop-lat="{{ shop.latitude }}"
+                 data-shop-lng="{{ shop.longitude }}"
+                 data-shop-name="{{ shop.business_name }}"
+                 data-shop-address="{{ shop.address }}">
+            <div class="shop-card-media">
+                {% if shop.image_url %}
+                <img src="{{ shop.image_url }}" class="shop-card-image" alt="Foto da {{ shop.business_name }}" loading="lazy">
+                {% elif loop.index0 % 2 == 0 %}
+                <img src="{{ url_for('static', filename='images/barbershop-hero.jpg') }}" class="shop-card-image" alt="Imagem ilustrativa de um atendimento de barbearia" loading="lazy">
+                <span class="shop-image-badge">Imagem ilustrativa</span>
+                {% else %}
+                <img src="{{ url_for('static', filename='images/barber-cut.jpg') }}" class="shop-card-image" alt="Imagem ilustrativa de um corte feito na barbearia" loading="lazy">
+                <span class="shop-image-badge">Imagem ilustrativa</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <p class="subtle-label mb-2">BARBEARIA</p>
+                <h2 class="h5">{{ shop.business_name }}</h2>
+                <p class="text-secondary mb-2">{{ shop.address }}</p>
+                {% if shop.location_is_approximate %}
+                <p class="small text-warning-emphasis">Ponto aproximado, ainda não confirmado pelo estabelecimento.</p>
+                {% endif %}
+                <a class="btn btn-outline-dark w-100" data-route-gps
+                   data-destination-lat="{{ shop.latitude }}"
+                   data-destination-lng="{{ shop.longitude }}"
+                   data-destination-address="{{ shop.address }}"
+                   target="_blank" rel="noopener noreferrer"
+                   href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}&amp;travelmode=driving&amp;dir_action=navigate">Calcular rota</a>
+                <span class="route-status small text-secondary mt-2" data-route-status aria-live="polite"></span>
+                {% if current_user.is_authenticated and current_user.role == 'client' %}
+                <a class="btn btn-dark w-100 mt-2" href="{{ url_for('main.services', shop_id=shop.id) }}">Escolher serviços e agendar</a>
+                {% elif not current_user.is_authenticated %}
+                <a class="btn btn-dark w-100 mt-2" href="{{ url_for('main.register_client') }}">Entre para agendar</a>
+                {% endif %}
+            </div>
+        </article>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card shadow-sm border-0 section-card">
+            <div class="card-body p-4 text-secondary">Nenhuma barbearia cadastrada por enquanto.</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}

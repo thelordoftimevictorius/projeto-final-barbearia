@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Serviços | Barber Manager{% endblock %}
+
+{% block content %}
+<!-- =========================================================
+     VISÃO DO CLIENTE: FEED CARROSSEL AUTOMÁTICO (BEGE E PRETO)
+========================================================= -->
+{% if current_user.role == 'client' %}
+<div class="catalog-client-wrapper">
+    <div class="catalog-header">
+        <div>
+            <span class="catalog-badge">ESTILOS &amp; PREÇOS</span>
+            <h2>Catálogo de Cortes</h2>
+            <p>Explore os serviços disponíveis. Passe o mouse para pausar a rolagem.</p>
+        </div>
+        <div class="carousel-controls">
+            <button type="button" class="btn-nav" onclick="scrollCatalog(-1)">&#10094;</button>
+            <button type="button" class="btn-nav" onclick="scrollCatalog(1)">&#10095;</button>
+        </div>
+    </div>
+
+    {% if shops %}
+    <form method="get" class="catalog-shop-select">
+        <label class="form-label" for="shop_id">Barbearia</label>
+        <select id="shop_id" name="shop_id" class="form-select" onchange="this.form.submit()">
+            {% for item in shops %}
+            <option value="{{ item.id }}" {% if item.id == selected_shop_id %}selected{% endif %}>{{ item.business_name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+    {% endif %}
+    {% if shop %}
+    <div class="shop-location-panel mb-4">
+        <div>
+            <strong>{{ shop.business_name }}</strong>
+            <p class="mb-1">{{ shop.address }}</p>
+            {% if shop.location_is_approximate %}<small>Localização aproximada; confirme o endereço antes de ir.</small>{% endif %}
+        </div>
+        <div>
+            <a class="btn btn-outline-dark" data-route-gps
+               data-destination-lat="{{ shop.latitude }}"
+               data-destination-lng="{{ shop.longitude }}"
+               data-destination-address="{{ shop.address }}"
+               target="_blank" rel="noopener noreferrer"
+               href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}&amp;travelmode=driving&amp;dir_action=navigate">Abrir rota e GPS</a>
+            <span class="route-status small d-block mt-2" data-route-status aria-live="polite"></span>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="auto-feed-viewport" id="feedViewport">
+        <div class="auto-feed-track" id="feedTrack">
+            {% for service in services %}
+                {% if service.status == 'active' %}
+                <div class="cut-card service-catalog-card">
+                    <div class="cut-img-box">
+                        {% if service.image_url %}
+                            <img class="service-catalog-image" src="{{ service.image_url }}" alt="{{ service.name }}" loading="lazy">
+                        {% else %}
+                            <div class="no-photo-placeholder service-catalog-placeholder">
+                                <span>BARBER LUX</span>
+                            </div>
+                        {% endif %}
+                        <span class="duration-pill">⏱ {{ service.duration_minutes }} min</span>
+                    </div>
+                    
+                    <div class="cut-body">
+                        <div class="cut-title-row">
+                            <h3>{{ service.name }}</h3>
+                            <span class="cut-price service-catalog-price">R$ {{ '%.2f'|format(service.price_cents / 100)|replace('.', ',') }}</span>
+                        </div>
+                        <p class="cut-desc">{{ service.description or 'Acabamento profissional personalizado.' }}</p>
+                        <a href="{{ url_for('main.appointments', shop_id=shop.id if shop else selected_shop_id, service_id=service.id) }}" class="btn-book-cut">
+                            Agendar este Corte
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-feed">Nenhum corte cadastrado nesta barbearia ainda.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     VISÃO DO DONO / BARBEARIA: PAINEL VISUAL DE EDIÇÃO
+========================================================= -->
+{% else %}
+<div class="owner-catalog-grid">
+    {% for service in services %}
+    <div class="owner-service-card">
+        <div class="owner-card-media">
+            {% if service.image_url %}
+                <img class="service-table-image" src="{{ service.image_url }}" alt="Foto de {{ service.name }}" loading="lazy">
+            {% else %}
+                <div class="owner-no-photo">Sem foto</div>
+            {% endif %}
+            
+            <span class="status-tag {{ 'active' if service.status == 'active' else 'inactive' }}">
+                {{ 'Ativo' if service.status == 'active' else 'Inativo' }}
+            </span>
+        </div>
+
+        <div class="owner-card-info">
+            <div class="owner-card-top">
+                <h4>{{ service.name }}</h4>
+                <span class="owner-price">R$ {{ '%.2f'|format(service.price_cents / 100) }}</span>
+            </div>
+            
+            <p class="owner-desc">{{ service.description or 'Sem descrição cadastrada.' }}</p>
+            <div class="owner-meta">Duração: <strong>{{ service.duration_minutes }} min</strong></div>
+
+            <div class="owner-actions">
+                <a href="{{ url_for('main.edit_service', service_id=service.id) }}" class="btn-edit-card">
+                    Editar / Foto
+                </a>
+                <form action="{{ url_for('main.delete_service', service_id=service.id) }}" method="post" onsubmit="return confirm('Deseja realmente excluir este corte do catálogo?');">
+                    <button type="submit" class="btn-delete-card">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-owner-box">
+        <p>Nenhum serviço cadastrado no catálogo.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

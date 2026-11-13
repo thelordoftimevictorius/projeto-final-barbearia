@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil da barbearia | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 section-card">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+                    <div>
+                        <p class="subtle-label mb-1">DADOS DO ESTABELECIMENTO</p>
+                        <h1 class="h3 mb-0">Perfil da barbearia</h1>
+                    </div>
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-dark">Voltar</a>
+                </div>
+                {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="business_name" class="form-label">Nome</label>
+                            <input id="business_name" name="business_name" class="form-control" value="{{ shop.business_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Telefone</label>
+                            <input id="phone" name="phone" type="tel" class="form-control" value="{{ shop.phone }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="address" class="form-label">Endereço</label>
+                            <input id="address" name="address" class="form-control" value="{{ shop.address }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="latitude" class="form-label">Latitude</label>
+                            <input id="latitude" name="latitude" type="number" step="any" min="-90" max="90" class="form-control" value="{{ shop.latitude }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="longitude" class="form-label">Longitude</label>
+                            <input id="longitude" name="longitude" type="number" step="any" min="-180" max="180" class="form-control" value="{{ shop.longitude }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="image_url" class="form-label">URL da foto da barbearia (opcional)</label>
+                            <input id="image_url" name="image_url" type="url" class="form-control" value="{{ shop.image_url or '' }}" placeholder="https://...">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input id="location_is_approximate" name="location_is_approximate" type="checkbox" class="form-check-input" {% if shop.location_is_approximate %}checked{% endif %}>
+                                <label for="location_is_approximate" class="form-check-label">A localização ainda é aproximada</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex flex-wrap justify-content-between gap-2">
+                        <a class="btn btn-outline-dark" target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}">Testar rota no Google Maps</a>
+                        <button type="submit" class="btn btn-dark">Salvar perfil</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

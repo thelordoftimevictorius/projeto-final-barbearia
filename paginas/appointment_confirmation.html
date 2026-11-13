@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Agendamento confirmado | Barber Manager{% endblock %}
+
+{% block content %}
+<section class="booking-confirmation card shadow-sm border-0">
+    <div class="card-body p-4 p-md-5">
+        <div class="booking-confirmation-icon" aria-hidden="true">✓</div>
+        <p class="subtle-label mb-2">AGENDAMENTO ENVIADO À BARBEARIA</p>
+        <h1 class="h2 mb-2">Agendamento confirmado!</h1>
+        <p class="text-secondary mb-4">
+            Seu horário foi reservado e já está disponível na agenda da barbearia.
+            O status atual é <strong>Agendado</strong>.
+        </p>
+
+        <div class="booking-detail-grid">
+            <div class="booking-detail">
+                <span>Barbearia</span>
+                <strong>{{ appointment.shop_name or 'Barbearia' }}</strong>
+            </div>
+            <div class="booking-detail">
+                <span>Serviço</span>
+                <strong>{{ appointment.service_name }}</strong>
+            </div>
+            <div class="booking-detail">
+                <span>Barbeiro</span>
+                <strong>{{ appointment.barber_name }}</strong>
+            </div>
+            <div class="booking-detail">
+                <span>Data</span>
+                <strong>{{ appointment_date }}</strong>
+            </div>
+            <div class="booking-detail">
+                <span>Horário</span>
+                <strong>{{ start_time }}–{{ end_time }}</strong>
+            </div>
+            <div class="booking-detail">
+                <span>Duração e valor</span>
+                <strong>{{ appointment.duration_minutes }} min · R$ {{ '%.2f'|format(appointment.price_cents / 100)|replace('.', ',') }}</strong>
+            </div>
+        </div>
+
+        <div class="booking-location mt-4">
+            <div>
+                <p class="subtle-label mb-1">ENDEREÇO</p>
+                <strong>{{ appointment.shop_address or 'Endereço não informado pela barbearia.' }}</strong>
+                {% if appointment.location_is_approximate %}
+                <p class="small text-warning-emphasis mb-0 mt-2">Localização aproximada; confirme o endereço exato antes de se deslocar.</p>
+                {% endif %}
+            </div>
+            {% if appointment.shop_id %}
+            <a class="btn btn-dark" href="{{ url_for('main.browse_barbershops', shop_id=appointment.shop_id) }}#barbershopMap">Ver localização</a>
+            {% endif %}
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <a class="btn btn-outline-dark" href="{{ url_for('main.appointments') }}">Ver meus agendamentos</a>
+            <a class="btn btn-link text-dark" href="{{ url_for('main.browse_barbershops') }}">Voltar às barbearias</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

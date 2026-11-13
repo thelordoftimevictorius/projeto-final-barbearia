@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}{% if service %}Editar serviço{% else %}Novo serviço{% endif %} | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0">{% if service %}Editar serviço{% else %}Novo serviço{% endif %}</h1>
+                    <a href="{{ url_for('main.services') }}" class="btn btn-outline-dark">Voltar</a>
+                </div>
+
+                {% if error %}
+                <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endif %}
+
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="name">Nome</label>
+                            <input id="name" name="name" class="form-control" value="{{ service.name if service else '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="price_cents">Preço (em centavos)</label>
+                            <input id="price_cents" name="price_cents" type="number" min="1" class="form-control" value="{{ service.price_cents if service else 0 }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="duration_minutes">Duração (minutos)</label>
+                            <input id="duration_minutes" name="duration_minutes" type="number" min="1" class="form-control" value="{{ service.duration_minutes if service else 30 }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="status">Status</label>
+                            <select id="status" name="status" class="form-select">
+                                <option value="active" {% if service and service.status == 'active' %}selected{% endif %}>Ativo</option>
+                                <option value="inactive" {% if service and service.status == 'inactive' %}selected{% endif %}>Inativo</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="description">Descrição</label>
+                            <textarea id="description" name="description" class="form-control" rows="4">{{ service.description if service else '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('main.services') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-dark">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

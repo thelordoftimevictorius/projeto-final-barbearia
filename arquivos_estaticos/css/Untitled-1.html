@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barber Lux | A Plataforma Definitiva para Barbearias</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Topo / Navegação -->
+  <header class="navbar">
+    <div class="logo">BARBER<span>LUX</span></div>
+    <nav class="nav-menu">
+      <a href="#sobre">Sobre</a>
+      <a href="#como-funciona">Como Funciona</a>
+      <a href="#para-barbearias">Para Barbearias</a>
+      <a href="#destaques">Destaques</a>
+    </nav>
+    <div class="nav-actions">
+      <a href="/login" class="btn-secondary">Entrar</a>
+      <a href="/register" class="btn-primary">Criar Conta</a>
+    </div>
+  </header>
+
+  <!-- Seção Hero: Apresentação Principal -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <span class="badge">Estilo & Conveniência</span>
+      <h1>O seu próximo corte agendado em segundos.</h1>
+      <p>
+        O Barber Lux é a plataforma que conecta você aos melhores barbeiros e barbearias da região. 
+        Consulte horários livres em tempo real, escolha o profissional ideal, visualize o catálogo de estilos e fale com a recepção sem complicações.
+      </p>
+      <div class="hero-buttons">
+        <a href="/barbearias" class="btn-primary btn-large">
+          <i class="fa-solid fa-scissors"></i> Encontrar Barbearia
+        </a>
+        <a href="/register?type=owner" class="btn-outline btn-large">
+          <i class="fa-solid fa-shop"></i> Sou Dono de Barbearia
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção O que é a Plataforma -->
+  <section class="info-section" id="sobre">
+    <div class="container">
+      <div class="section-header">
+        <h2>O que é o Barber Lux?</h2>
+        <p>Criado para modernizar o atendimento das barbearias e eliminar filas de espera.</p>
+      </div>
+
+      <div class="cards-grid">
+        <div class="info-card">
+          <div class="icon-box"><i class="fa-solid fa-calendar-check"></i></div>
+          <h3>Agendamento Sem Filas</h3>
+          <p>Esqueça mensagens demoradas no WhatsApp. Veja os horários vagos de cada barbeiro e reserve o seu horário em tempo real.</p>
+        </div>
+
+        <div class="info-card">
+          <div class="icon-box"><i class="fa-solid fa-book-open"></i></div>
+          <h3>Catálogo com Fotos e Valores</h3>
+          <p>Conheça os estilos disponíveis, desde degradês clássicos até barba terapia, sabendo com antecedência o valor exato do serviço.</p>
+        </div>
+
+        <div class="info-card">
+          <div class="icon-box"><i class="fa-solid fa-comments"></i></div>
+          <h3>Chat com a Recepção</h3>
+          <p>Tire dúvidas direto com o estabelecimento em um chat exclusivo, garantindo alinhamento antes mesmo de sentar na cadeira.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção Como Funciona para Clientes -->
+  <section class="steps-section" id="como-funciona">
+    <div class="container">
+      <div class="section-header light">
+        <h2>Como Funciona?</h2>
+        <p>Em 3 etapas simples você garante seu atendimento impecável.</p>
+      </div>
+
+      <div class="steps-container">
+        <div class="step-card">
+          <div class="step-num">01</div>
+          <h4>Escolha a Barbearia</h4>
+          <p>Navegue pelo mapa ou confira o ranking dos locais mais bem avaliados por outros clientes.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">02</div>
+          <h4>Selecione o Corte & Barbeiro</h4>
+          <p>Escolha o profissional de sua preferência e defina o estilo pelo catálogo com fotos detalhadas.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">03</div>
+          <h4>Confirme e Avalie</h4>
+          <p>Receba a confirmação do agendamento e, após o corte, deixe sua nota e comentário para ajudar a comunidade.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção Para Donos de Barbearia -->
+  <section class="business-section" id="para-barbearias">
+    <div class="container split-box">
+      <div class="business-text">
+        <span class="badge-gold">Gestão Profissional</span>
+        <h2>Você gerencia uma barbearia?</h2>
+        <p>
+          Cadastre seu estabelecimento com CNPJ, endereço e equipe. Tenha controle completo de preços, 
+          disponibilidade dos barbeiros e relatórios de agendamentos em um painel administrativo intuitivo.
+        </p>
+        <ul class="features-list">
+          <li><i class="fa-solid fa-check"></i> Gestão individual da agenda de cada barbeiro</li>
+          <li><i class="fa-solid fa-check"></i> Redução drástica de faltas e horários ociosos</li>
+          <li><i class="fa-solid fa-check"></i> Visibilidade destacada para novos clientes na sua cidade</li>
+        </ul>
+        <a href="/register?type=owner" class="btn-primary">Cadastrar Minha Empresa</a>
+      </div>
+      <div class="business-badge-card">
+        <div class="stat-item">
+          <span class="stat-number">100%</span>
+          <span class="stat-label">Online e Integrado</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">24/7</span>
+          <span class="stat-label">Agendamentos Abertos</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rodapé -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-logo">BARBER<span>LUX</span></div>
+      <p>© 2026 Barber Lux. Conectando estilo, precisão e conveniência.</p>
+      <div class="footer-links">
+        <a href="/login">Área do Cliente</a>
+        <a href="/login">Área da Barbearia</a>
+        <a href="/admin">Painel Administrativo</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

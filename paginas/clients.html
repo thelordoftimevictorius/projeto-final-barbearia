@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="list-toolbar">
+    <div>
+        <p class="subtle-label">Gestão</p>
+        <h1 class="h3 mb-0">Clientes</h1>
+    </div>
+    {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('main.create_client') }}" class="btn btn-dark">Novo cliente</a>
+    {% endif %}
+</div>
+
+<div class="card shadow-sm border-0 grid-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefone</th>
+                        <th>E-mail</th>
+                        <th>Nascimento</th>
+                        {% if current_user.role == 'admin' %}<th>Ações</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    {% set photo_url = client.profile_photo_url or 'https://ui-avatars.com/api/?name=' ~ client.full_name|urlencode ~ '&background=0B0B0B&color=ffffff&size=128' %}
+                    <tr>
+                        <td>
+                            <div class="client-row">
+                                <img src="{{ photo_url }}" alt="Perfil de {{ client.full_name }}" class="client-avatar">
+                                <span>{{ client.full_name }}</span>
+                            </div>
+                        </td>
+                        <td>{{ client.phone }}</td>
+                        <td>{{ client.email or '-' }}</td>
+                        <td>{{ client.birth_date or '-' }}</td>
+                        {% if current_user.role == 'admin' %}<td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('main.edit_client', client_id=client.id) }}" class="btn btn-sm btn-outline-dark">Editar</a>
+                                <form action="{{ url_for('main.delete_client', client_id=client.id) }}" method="post">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                                </form>
+                            </div>
+                        </td>{% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{% if current_user.role == 'admin' %}5{% else %}4{% endif %}" class="text-center text-muted py-4">Nenhum cliente cadastrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

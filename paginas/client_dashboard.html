@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Meu painel | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <p class="eyebrow mb-2">CLIENTE</p>
+        <h1 class="h3 mb-0">Olá, {{ current_user.full_name }}</h1>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('main.appointments') }}" class="btn btn-dark">Agendar horário</a>
+        <a href="{{ url_for('main.logout') }}" class="btn btn-outline-dark">Sair</a>
+    </div>
+</div>
+
+<div class="card section-card mt-4">
+    <div class="card-body">
+        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+            <img
+                src="{{ client_profile.profile_photo_url or 'https://ui-avatars.com/api/?name=' ~ current_user.full_name|urlencode ~ '&background=0B0B0B&color=ffffff&size=200' }}"
+                alt="Perfil do cliente"
+                class="rounded-circle border border-2 border-dark"
+                style="width: 96px; height: 96px; object-fit: cover;"
+            >
+            <div>
+                <span class="mini-label">Perfil</span>
+                <h2 class="h5 mb-1">{{ current_user.full_name }}</h2>
+                <p class="mb-0 text-secondary">{{ client_profile.email or current_user.email }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card section-card mt-4">
+    <div class="card-body">
+        <div class="section-heading mb-3">
+            <h2 class="h5 mb-0">Meus agendamentos</h2>
+        </div>
+
+        {% if appointments %}
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Data</th>
+                        <th>Horário</th>
+                        <th>Barbeiro</th>
+                        <th>Serviço</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                    <tr>
+                        <td>{{ appointment.starts_at[:10] }}</td>
+                        <td>{{ appointment.starts_at[11:16] }}</td>
+                        <td>{{ appointment.barber_name }}</td>
+                        <td>{{ appointment.service_name }}</td>
+                        <td>R$ {{ '%.2f'|format(appointment.service_price_cents / 100) }}</td>
+                        <td>
+                            {% if appointment.status == 'scheduled' %}
+                                <span class="badge text-bg-secondary">Agendado</span>
+                            {% elif appointment.status == 'confirmed' %}
+                                <span class="badge text-bg-primary">Confirmado</span>
+                            {% elif appointment.status == 'completed' %}
+                                <span class="badge text-bg-success">Concluído</span>
+                            {% elif appointment.status == 'cancelled' %}
+                                <span class="badge text-bg-danger">Cancelado</span>
+                            {% else %}
+                                <span class="badge text-bg-warning text-dark">No Show</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="mb-3 text-secondary">Você ainda não possui agendamentos.</p>
+        <a href="{{ url_for('main.appointments') }}" class="btn btn-dark">Escolher horário</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}Agenda | Barber Manager{% endblock %}
+
+{% block content %}
+<div class="list-toolbar">
+    <div>
+        <p class="subtle-label">Operação</p>
+        <h1 class="h3 mb-0">Agenda</h1>
+    </div>
+</div>
+
+{% if current_user.role == 'client' %}
+<div class="card shadow-sm border-0 mb-4 section-card">
+    <div class="card-body">
+        <div class="section-heading mb-3">
+            <div>
+                <span class="mini-label">AGENDAMENTO ONLINE</span>
+                <h2 class="h5 mb-0">Escolha seu atendimento</h2>
+            </div>
+        </div>
+        {% if shops %}
+        <form method="get" class="mb-3">
+            <label class="form-label" for="appointment_shop_id">Barbearia</label>
+            <select id="appointment_shop_id" name="shop_id" class="form-select" onchange="this.form.submit()">
+                {% for shop_option in shops %}
+                <option value="{{ shop_option.id }}" {% if shop_option.id == selected_shop_id %}selected{% endif %}>{{ shop_option.business_name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
+        {% if selected_shop %}
+        <div class="shop-location-panel mb-4">
+            <div>
+                <strong>{{ selected_shop.business_name }}</strong>
+                <p class="mb-1">{{ selected_shop.address }}</p>
+                {% if selected_shop.location_is_approximate %}<small>Localização aproximada; confirme antes de se deslocar.</small>{% endif %}
+            </div>
+            <div class="d-flex flex-column align-items-start">
+                <a class="btn btn-outline-dark" data-route-gps
+                   data-destination-lat="{{ selected_shop.latitude }}"
+                   data-destination-lng="{{ selected_shop.longitude }}"
+                   data-destination-address="{{ selected_shop.address }}"
+                   target="_blank" rel="noopener noreferrer"
+                   href="https://www.google.com/maps/dir/?api=1&amp;destination={{ selected_shop.latitude }},{{ selected_shop.longitude }}&amp;travelmode=driving&amp;dir_action=navigate">Abrir rota e GPS</a>
+                <span class="route-status small text-secondary mt-2" data-route-status aria-live="polite"></span>
+            </div>
+        </div>
+        {% endif %}
+        {% if services %}
+        <section class="catalog-client-wrapper appointment-shop-catalog mb-4" aria-label="Catálogo da barbearia selecionada">
+            <div class="catalog-header">
+                <div>
+                    <span class="catalog-badge">{{ 'CATÁLOGO EXCLUSIVO' if selected_shop else 'CATÁLOGO' }}</span>
+                    <h2>{{ selected_shop.business_name if selected_shop else 'Serviços disponíveis' }}</h2>
+                    <p>Confira os cortes, valores e duração antes de escolher seu horário.</p>
+                </div>
+                <div class="carousel-controls">
+                    <button type="button" class="btn-nav" aria-label="Ver serviços anteriores" onclick="scrollCatalog(-1)">&#10094;</button>
+                    <button type="button" class="btn-nav" aria-label="Ver próximos serviços" onclick="scrollCatalog(1)">&#10095;</button>
+                </div>
+            </div>
+            <div class="auto-feed-viewport" id="feedViewport">
+                <div class="auto-feed-track">
+                    {% for service in services %}
+                    <article class="cut-card service-catalog-card">
+                        <div class="cut-img-box">
+                            {% if service.image_url %}
+                            <img class="service-catalog-image" src="{{ service.image_url }}" alt="Foto do serviço {{ service.name }}" loading="lazy">
+                            {% else %}
+                            <div class="no-photo-placeholder service-catalog-placeholder">
+                                <span>BARBER LUX</span>
+                            </div>
+                            {% endif %}
+                            <span class="duration-pill">{{ service.duration_minutes }} min</span>
+                        </div>
+                        <div class="cut-body">
+                            <div class="cut-title-row">
+                                <h3>{{ service.name }}</h3>
+                                <span class="cut-price service-catalog-price">R$ {{ '%.2f'|format(service.price_cents / 100)|replace('.', ',') }}</span>
+                            </div>
+                            <p class="cut-desc">{{ service.description or 'Acabamento profissional personalizado.' }}</p>
+                            <a class="btn-book-cut" href="{{ url_for('main.appointments', shop_id=selected_shop_id, service_id=service.id) }}#clientAppointmentForm">
+                                Agendar este serviço
+                            </a>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% elif selected_shop %}
+        <div class="empty-feed mb-4">Esta barbearia ainda não possui serviços ativos no catálogo.</div>
+        {% endif %}
+        {% if barbers and services %}
+        <form method="post" action="{{ url_for('main.create_appointment') }}" id="clientAppointmentForm"
+              data-availability-url="{{ url_for('main.appointment_availability') }}"
+              data-selected-time="{{ selected_time }}">
+            {% if selected_shop_id %}<input type="hidden" name="shop_id" value="{{ selected_shop_id }}">{% endif %}
+            <div class="row g-3">
+                {% if selected_service %}
+                <input type="hidden" id="service_id" name="service_id" value="{{ selected_service.id }}">
+                <div class="col-md-6">
+                    <div class="selected-booking-service">
+                        <span class="form-label">Serviço escolhido</span>
+                        <strong>{{ selected_service.name }}</strong>
+                        <small>{{ selected_service.duration_minutes }} min · R$ {{ '%.2f'|format(selected_service.price_cents / 100)|replace('.', ',') }}</small>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-md-6">
+                    <label class="form-label" for="service_id">Serviço</label>
+                    <select id="service_id" name="service_id" class="form-select" required>
+                        <option value="">Selecione um serviço</option>
+                        {% for service in services %}
+                        <option value="{{ service.id }}">{{ service.name }} — R$ {{ '%.2f'|format(service.price_cents / 100)|replace('.', ',') }} ({{ service.duration_minutes }} min)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-6">
+                    <label class="form-label" for="barber_id">Barbeiro</label>
+                    <select id="barber_id" name="barber_id" class="form-select" required>
+                        <option value="">Selecione um barbeiro</option>
+                        {% for barber in barbers %}
+                        <option value="{{ barber.id }}">{{ barber.full_name }}{% if barber.specialty %} — {{ barber.specialty }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="appointment_date">Data</label>
+                    <input id="appointment_date" name="appointment_date" type="date" class="form-control"
+                           value="{{ selected_date }}" min="{{ today }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="appointment_time">Horário disponível</label>
+                    <select id="appointment_time" name="appointment_time" class="form-select" required disabled>
+                        <option value="">Escolha a data, o serviço e o barbeiro</option>
+                    </select>
+                    <small id="availabilityStatus" class="form-text text-secondary" aria-live="polite">
+                        Funcionamento diário: 05:00–00:00. Os horários ocupados pelo barbeiro escolhido não podem ser selecionados.
+                    </small>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-dark w-100">Confirmar agendamento</button>
+                </div>
+            </div>
+        </form>
+        {% else %}
+        <p class="mb-0 text-secondary">No momento não há barbeiros ou serviços disponíveis para agendamento.</p>
+        {% endif %}
+        {% if selected_shop %}
+        <p class="small text-secondary mt-3 mb-0">A rota do Google Maps precisa de internet; este painel não oferece navegação offline.</p>
+        {% endif %}
+    </div>
+</div>
+<div class="card shadow-sm border-0 mb-4 section-card">
+    <div class="card-body">
+        <div class="section-heading mb-3">
+            <h2 class="h5 mb-0">Meus agendamentos</h2>
+        </div>
+        {% if appointments %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Barbeiro</th>
+                        <th>Serviço</th>
+                        <th>Início</th>
+                        <th>Fim</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                    <tr>
+                        <td>{{ appointment.barber_name }}</td>
+                        <td>{{ appointment.service_name }}</td>
+                        <td>{{ appointment.starts_at }}</td>
+                        <td>{{ appointment.ends_at }}</td>
+                        <td>R$ {{ '%.2f'|format(appointment.price_cents / 100) }}</td>
+                        <td>
+                            {% if appointment.status == 'scheduled' %}
+                                <span class="badge text-bg-secondary">Agendado</span>
+                            {% elif appointment.status == 'confirmed' %}
+                                <span class="badge text-bg-primary">Confirmado</span>
+                            {% elif appointment.status == 'completed' %}
+                                <span class="badge text-bg-success">Concluído</span>
+                            {% elif appointment.status == 'cancelled' %}
+                                <span class="badge text-bg-danger">Cancelado</span>
+                            {% else %}
+                                <span class="badge text-bg-warning text-dark">No Show</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if appointment.status in ['scheduled', 'confirmed'] and appointment.starts_at > now_local %}
+                            <div class="d-flex flex-wrap gap-2">
+                                <a class="btn btn-sm btn-outline-dark" href="{{ url_for('main.appointment_confirmation', appointment_id=appointment.id) }}">Detalhes</a>
+                                <form action="{{ url_for('main.cancel_appointment', appointment_id=appointment.id) }}" method="post">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar</button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <a class="btn btn-sm btn-outline-dark" href="{{ url_for('main.appointment_confirmation', appointment_id=appointment.id) }}">Detalhes</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="mb-0 text-secondary">Você ainda não tem agendamentos.</p>
+        {% endif %}
+    </div>
+</div>
+{% elif current_user.role == 'employee' %}
+<div class="card shadow-sm border-0 mb-4 section-card">
+    <div class="card-body">
+        <div class="section-heading mb-3">
+            <h2 class="h5 mb-0">Fila de atendimento</h2>
+        </div>
+        {% if queue_rows %}
+        <div class="queue-grid">
+            {% for appointment in queue_rows %}
+            {% set photo_url = appointment.client_photo_url or 'https://ui-avatars.com/api/?name=' ~ appointment.client_name|urlencode ~ '&background=0B0B0B&color=ffffff&size=128' %}
+            <div class="queue-card">
+                <div class="queue-client">
+                    <img src="{{ photo_url }}" alt="Perfil de {{ appointment.client_name }}" class="queue-avatar">
+                    <div>
+                        <strong>{{ appointment.client_name }}</strong>
+                        <small>{{ appointment.barber_name }}</small>
+                    </div>
+                </div>
+                <div class="queue-meta">
+                    <span>Corte</span>
+                    <strong>{{ appointment.service_name }}</strong>
+                </div>
+                <div class="queue-meta">
+                    <span>Valor</span>
+                    <strong>R$ {{ '%.2f'|format(appointment.service_price_cents / 100) }}</strong>
+                </div>
+                <div class="queue-meta">
+                    <span>Horário</span>
+                    <strong>{{ appointment.starts_at[11:16] }}</strong>
+                </div>
+                {% if appointment.status == 'no_show' %}
+                <form action="{{ url_for('main.update_appointment_status', appointment_id=appointment.id) }}" method="post" class="mt-2">
+                    <input type="hidden" name="status" value="scheduled">
+                    <button type="submit" class="btn btn-sm btn-outline-dark w-100">Desmarcar no-show</button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('main.update_appointment_status', appointment_id=appointment.id) }}" method="post" class="mt-2">
+                    <input type="hidden" name="status" value="no_show">
+                    <button type="submit" class="btn btn-sm btn-warning w-100">Marcar não compareceu</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="mb-0 text-secondary">Nenhum cliente na fila para hoje.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if not client_view %}
+<div class="card shadow-sm border-0 mb-4 section-card">
+    <div class="card-body">
+        <div class="form-section-title">
+            <h2 class="h5 mb-0">Novo agendamento</h2>
+        </div>
+        <form method="post" action="{{ url_for('main.create_appointment') }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label" for="client_id">Cliente</label>
+                    <select id="client_id" name="client_id" class="form-select" required>
+                        <option value="">Selecione</option>
+                        {% for client in clients %}
+                        <option value="{{ client.id }}">{{ client.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="barber_id">Barbeiro</label>
+                    <select id="barber_id" name="barber_id" class="form-select" required>
+                        <option value="">Selecione</option>
+                        {% for barber in barbers %}
+                        <option value="{{ barber.id }}">{{ barber.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="service_id">Serviço</label>
+                    <select id="service_id" name="service_id" class="form-select" required>
+                        <option value="">Selecione</option>
+                        {% for service in services %}
+                        <option value="{{ service.id }}">{{ service.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="status">Status</label>
+                    <select id="status" name="status" class="form-select">
+                        {% for status in statuses %}
+                        <option value="{{ status }}">{{ status }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label" for="starts_at">Início</label>
+                    <input id="starts_at" name="starts_at" type="datetime-local" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="mt-3 d-flex justify-content-end">
+                <button type="submit" class="btn btn-dark">Salvar agendamento</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if not client_view %}
+<div class="card shadow-sm border-0 grid-card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Barbeiro</th>
+                        <th>Serviço</th>
+                        <th>Início</th>
+                        <th>Fim</th>
+                        <th>Valor</th>
+                        <th>Status</th>
+                        {% if not client_view %}<th>Ações</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                    <tr>
+                        <td>{{ appointment.client_name }}</td>
+                        <td>{{ appointment.barber_name }}</td>
+                        <td>{{ appointment.service_name }}</td>
+                        <td>{{ appointment.starts_at }}</td>
+                        <td>{{ appointment.ends_at }}</td>
+                        <td>R$ {{ '%.2f'|format(appointment.price_cents / 100) }}</td>
+                        <td>
+                            {% if appointment.status == 'scheduled' %}
+                                <span class="badge text-bg-secondary">Agendado</span>
+                            {% elif appointment.status == 'confirmed' %}
+                                <span class="badge text-bg-primary">Confirmado</span>
+                            {% elif appointment.status == 'completed' %}
+                                <span class="badge text-bg-success">Concluído</span>
+                            {% elif appointment.status == 'cancelled' %}
+                                <span class="badge text-bg-danger">Cancelado</span>
+                            {% else %}
+                                <span class="badge text-bg-warning text-dark">No Show</span>
+                            {% endif %}
+                        </td>
+                        {% if not client_view %}
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{{ url_for('main.edit_appointment', appointment_id=appointment.id) }}" class="btn btn-sm btn-outline-dark">Editar</a>
+                                <form action="{{ url_for('main.cancel_appointment', appointment_id=appointment.id) }}" method="post">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Cancelar</button>
+                                </form>
+                                <form action="{{ url_for('main.delete_appointment', appointment_id=appointment.id) }}" method="post">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                                </form>
+                            </div>
+                            <form action="{{ url_for('main.update_appointment_status', appointment_id=appointment.id) }}" method="post" class="mt-2 d-flex gap-2 align-items-center">
+                                <select class="form-select form-select-sm" name="status">
+                                    {% for status in statuses %}
+                                    <option value="{{ status }}" {% if status == appointment.status %}selected{% endif %}>{{ status }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-dark">Atualizar</button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="{% if client_view %}7{% else %}8{% endif %}" class="text-center text-muted py-4">Nenhum agendamento cadastrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
