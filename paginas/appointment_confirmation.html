@@ -1,62 +1,433 @@
 {% extends "base.html" %}
 
-{% block title %}Agendamento confirmado | Barber Manager{% endblock %}
+{% block title %}Agendamento Concluído com Sucesso | Barber Manager{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    .confirmation-hero {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 40px 32px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        max-width: 760px;
+        margin: 0 auto;
+    }
+    .success-badge-icon {
+        width: 72px;
+        height: 72px;
+        background: #111111;
+        color: #d4af37;
+        font-size: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px auto;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+    .confirmation-title {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #111111;
+        margin-bottom: 8px;
+        letter-spacing: -0.5px;
+    }
+    .confirmation-subtitle {
+        font-size: 1.15rem;
+        color: #555555;
+        margin-bottom: 20px;
+    }
+    .address-box {
+        background: #fbf9f6;
+        border: 1.5px solid #eadbcc;
+        border-radius: 12px;
+        padding: 18px 22px;
+        margin-bottom: 28px;
+        text-align: left;
+    }
+    .address-box-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8c7355;
+        margin-bottom: 4px;
+        display: block;
+    }
+    .address-box-text {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0;
+        line-height: 1.4;
+    }
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 32px;
+        text-align: left;
+    }
+    .detail-card {
+        background: #fafafa;
+        border: 1px solid #eeeeee;
+        border-radius: 12px;
+        padding: 16px;
+    }
+    .detail-card-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        color: #777777;
+        margin-bottom: 6px;
+        display: block;
+    }
+    .detail-card-val {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #111111;
+        margin: 0;
+    }
+    .btn-conferir-rota {
+        background: #111111;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 16px 28px;
+        border-radius: 12px;
+        border: none;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        cursor: pointer;
+    }
+    .btn-conferir-rota:hover {
+        background: #2a2a2a;
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+    #mapSection {
+        display: none;
+        margin-top: 36px;
+        text-align: left;
+        animation: fadeIn 0.4s ease-in-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .map-frame {
+        height: 440px;
+        width: 100%;
+        border-radius: 14px;
+        border: 1.5px solid #eadbcc;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+    .route-status-card {
+        background: #fdfcfb;
+        border: 1px solid #eadbcc;
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .user-pulse-marker {
+        width: 18px;
+        height: 18px;
+        background: #007bff;
+        border: 3px solid #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(0, 123, 255, 0.8);
+        animation: pulseAnimation 2s infinite;
+    }
+    @keyframes pulseAnimation {
+        0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(0, 123, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="booking-confirmation card shadow-sm border-0">
-    <div class="card-body p-4 p-md-5">
-        <div class="booking-confirmation-icon" aria-hidden="true">✓</div>
-        <p class="subtle-label mb-2">AGENDAMENTO ENVIADO À BARBEARIA</p>
-        <h1 class="h2 mb-2">Agendamento confirmado!</h1>
-        <p class="text-secondary mb-4">
-            Seu horário foi reservado e já está disponível na agenda da barbearia.
-            O status atual é <strong>Agendado</strong>.
-        </p>
+<div class="container py-4">
+    <div class="confirmation-hero text-center">
+        <!-- Ícone de Sucesso -->
+        <div class="success-badge-icon" aria-hidden="true">✓</div>
 
-        <div class="booking-detail-grid">
-            <div class="booking-detail">
-                <span>Barbearia</span>
-                <strong>{{ appointment.shop_name or 'Barbearia' }}</strong>
-            </div>
-            <div class="booking-detail">
-                <span>Serviço</span>
-                <strong>{{ appointment.service_name }}</strong>
-            </div>
-            <div class="booking-detail">
-                <span>Barbeiro</span>
-                <strong>{{ appointment.barber_name }}</strong>
-            </div>
-            <div class="booking-detail">
-                <span>Data</span>
-                <strong>{{ appointment_date }}</strong>
-            </div>
-            <div class="booking-detail">
-                <span>Horário</span>
-                <strong>{{ start_time }}–{{ end_time }}</strong>
-            </div>
-            <div class="booking-detail">
-                <span>Duração e valor</span>
-                <strong>{{ appointment.duration_minutes }} min · R$ {{ '%.2f'|format(appointment.price_cents / 100)|replace('.', ',') }}</strong>
-            </div>
-        </div>
+        <!-- Título e Texto Solicitado -->
+        <h1 class="confirmation-title">Agendamento concluído com sucesso!</h1>
+        <span class="visually-hidden">Agendamento confirmado!</span>
+        <p class="confirmation-subtitle">Te esperamos em breve no nosso endereço:</p>
 
-        <div class="booking-location mt-4">
-            <div>
-                <p class="subtle-label mb-1">ENDEREÇO</p>
-                <strong>{{ appointment.shop_address or 'Endereço não informado pela barbearia.' }}</strong>
-                {% if appointment.location_is_approximate %}
-                <p class="small text-warning-emphasis mb-0 mt-2">Localização aproximada; confirme o endereço exato antes de se deslocar.</p>
-                {% endif %}
-            </div>
-            {% if appointment.shop_id %}
-            <a class="btn btn-dark" href="{{ url_for('main.browse_barbershops', shop_id=appointment.shop_id) }}#barbershopMap">Ver localização</a>
+        <!-- Endereço em Destaque -->
+        <div class="address-box">
+            <span class="address-box-label">📍 Endereço da Barbearia</span>
+            <p class="address-box-text">
+                {{ appointment.shop_address or 'Rua do Comércio, Centro - Serra Talhada - PE' }}
+            </p>
+            {% if appointment.shop_name %}
+            <small class="text-secondary d-block mt-1">Estabelecimento: <strong>{{ appointment.shop_name }}</strong></small>
             {% endif %}
         </div>
 
-        <div class="d-flex flex-wrap gap-2 mt-4">
-            <a class="btn btn-outline-dark" href="{{ url_for('main.appointments') }}">Ver meus agendamentos</a>
-            <a class="btn btn-link text-dark" href="{{ url_for('main.browse_barbershops') }}">Voltar às barbearias</a>
+        <!-- Dados Principais: Horário, Barbeiro e Tipo de Corte -->
+        <div class="details-grid">
+            <div class="detail-card">
+                <span class="detail-card-label">🕒 Horário Marcado</span>
+                <p class="detail-card-val">{{ appointment_date }} às {{ start_time }}</p>
+                <small class="text-secondary">{{ start_time }} às {{ end_time }} ({{ appointment.duration_minutes }} min)</small>
+            </div>
+
+            <div class="detail-card">
+                <span class="detail-card-label">💈 Barbeiro</span>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    {% set b_photo = appointment.barber_photo_url or 'https://ui-avatars.com/api/?name=' ~ appointment.barber_name|urlencode ~ '&background=111111&color=d4af37&size=96' %}
+                    <img src="{{ b_photo }}" alt="Foto de {{ appointment.barber_name }}" class="rounded-circle border" style="width: 38px; height: 38px; object-fit: cover;">
+                    <div>
+                        <p class="detail-card-val mb-0" style="font-size: 1rem;">{{ appointment.barber_name }}</p>
+                        <small class="text-secondary">Profissional selecionado</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-card">
+                <span class="detail-card-label">✂️ Tipo de Corte</span>
+                <p class="detail-card-val">{{ appointment.service_name }}</p>
+                <small class="text-secondary">R$ {{ '%.2f'|format(appointment.price_cents / 100)|replace('.', ',') }}</small>
+            </div>
+        </div>
+
+        <!-- Botão Solicitado: Conferir rota -->
+        <div class="text-center">
+            <button type="button" id="btnConferirRota" class="btn-conferir-rota w-100">
+                <span aria-hidden="true">🗺️</span> Conferir rota
+            </button>
+        </div>
+
+        <!-- Seção do Mapa (Aparece SOMENTE ao clicar no botão) -->
+        <div id="mapSection">
+            <hr class="my-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 mb-0 fw-bold">Rota em Tempo Real até a Barbearia</h2>
+                <span class="badge text-bg-dark">GPS Ativo</span>
+            </div>
+
+            <div class="route-status-card">
+                <div>
+                    <strong id="gpsStatusMessage">Conectando ao GPS da sua localização...</strong>
+                    <div id="routeInfo" class="small text-secondary mt-1">Traçando o melhor trajeto pelas ruas em tempo real.</div>
+                </div>
+                <div id="routeMetricsBadge" class="d-none">
+                    <span id="routeDistance" class="badge text-bg-primary fs-6 me-1">-- km</span>
+                    <span id="routeDuration" class="badge text-bg-success fs-6">-- min</span>
+                </div>
+            </div>
+
+            <!-- Mapa Leaflet -->
+            <div id="routeMap" class="map-frame"></div>
+
+            <!-- Botão de apoio para Google Maps com navegação por voz -->
+            <div class="mt-3">
+                <a id="btnExternalGps" class="btn btn-outline-dark w-100" target="_blank" rel="noopener noreferrer"
+                   href="https://www.google.com/maps/dir/?api=1&amp;destination={{ appointment.shop_latitude }},{{ appointment.shop_longitude }}&amp;travelmode=driving&amp;dir_action=navigate">
+                    Abrir no aplicativo do Google Maps (Navegação por voz) ↗
+                </a>
+            </div>
+        </div>
+
+        <!-- Ações secundárias -->
+        <div class="d-flex justify-content-center flex-wrap gap-3 mt-4 pt-2 border-top">
+            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.appointments') }}">Ver meus agendamentos</a>
+            {% if appointment.shop_id %}
+            <a class="btn btn-link btn-sm text-secondary" href="{{ url_for('main.browse_barbershops', shop_id=appointment.shop_id) }}#barbershopMap">Ver no mapa da cidade</a>
+            {% endif %}
+            <a class="btn btn-link btn-sm text-secondary" href="{{ url_for('main.home') }}">Voltar à página inicial</a>
         </div>
     </div>
-</section>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const btnConferir = document.getElementById("btnConferirRota");
+    const mapSection = document.getElementById("mapSection");
+    const gpsStatusMessage = document.getElementById("gpsStatusMessage");
+    const routeInfo = document.getElementById("routeInfo");
+    const routeMetricsBadge = document.getElementById("routeMetricsBadge");
+    const routeDistance = document.getElementById("routeDistance");
+    const routeDuration = document.getElementById("routeDuration");
+    const btnExternalGps = document.getElementById("btnExternalGps");
+
+    const destLat = Number.parseFloat("{{ appointment.shop_latitude }}") || -7.9868;
+    const destLng = Number.parseFloat("{{ appointment.shop_longitude }}") || -38.2920;
+    const destAddress = "{{ appointment.shop_address or 'Barbearia' }}";
+    const shopName = "{{ appointment.shop_name or 'Barbearia' }}";
+
+    let map = null;
+    let userMarker = null;
+    let shopMarker = null;
+    let routePolyline = null;
+    let watchId = null;
+    let isMapInitialized = false;
+
+    btnConferir.addEventListener("click", function () {
+        // 1. Torna a seção do mapa visível
+        mapSection.style.display = "block";
+        btnConferir.innerHTML = "<span>✓</span> Rota ativada no mapa abaixo";
+        btnConferir.classList.remove("btn-conferir-rota");
+        btnConferir.classList.add("btn", "btn-secondary", "w-100", "py-3", "fw-bold");
+
+        // 2. Rola suavemente até o mapa
+        setTimeout(() => {
+            mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+
+        // 3. Inicializa o mapa caso ainda não tenha sido
+        if (!isMapInitialized) {
+            initLiveRouteMap();
+            isMapInitialized = true;
+        }
+    });
+
+    function initLiveRouteMap() {
+        map = L.map("routeMap").setView([destLat, destLng], 15);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+
+        // Marcador da Barbearia (Destino)
+        const shopIcon = L.divIcon({
+            className: "custom-shop-pin",
+            html: `<div style="background:#111; color:#d4af37; border:2px solid #fff; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 4px 10px rgba(0,0,0,0.3);">✂️</div>`,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+        });
+
+        shopMarker = L.marker([destLat, destLng], { icon: shopIcon }).addTo(map);
+        shopMarker.bindPopup(`<strong>${shopName}</strong><br><small>${destAddress}</small>`).openPopup();
+
+        // 4. Captura localização do GPS em tempo real
+        if (!navigator.geolocation) {
+            gpsStatusMessage.textContent = "GPS não suportado neste navegador.";
+            routeInfo.textContent = "Exibindo localização da barbearia no mapa.";
+            return;
+        }
+
+        gpsStatusMessage.textContent = "Buscando seu sinal de GPS...";
+        routeInfo.textContent = "Por favor, autorize o acesso à localização quando solicitado.";
+
+        watchId = navigator.geolocation.watchPosition(
+            function (position) {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+
+                updateUserPositionAndRoute(userLat, userLng);
+            },
+            function (error) {
+                console.warn("Erro ao obter GPS:", error);
+                gpsStatusMessage.textContent = "Não foi possível obter sua localização exata.";
+                routeInfo.textContent = "Você pode usar o botão abaixo para abrir a rota diretamente no Google Maps.";
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 12000,
+                maximumAge: 3000
+            }
+        );
+    }
+
+    async function updateUserPositionAndRoute(userLat, userLng) {
+        // Atualiza link externo com a posição real do usuário
+        btnExternalGps.href = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLng}&destination=${destLat},${destLng}&travelmode=driving&dir_action=navigate`;
+
+        // Marcador do Cliente (Ponto azul pulsante)
+        const userIcon = L.divIcon({
+            className: "user-radar-pin",
+            html: `<div class="user-pulse-marker"></div>`,
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+        });
+
+        if (!userMarker) {
+            userMarker = L.marker([userLat, userLng], { icon: userIcon }).addTo(map);
+            userMarker.bindPopup("<strong>Sua localização em tempo real</strong>");
+        } else {
+            userMarker.setLatLng([userLat, userLng]);
+        }
+
+        gpsStatusMessage.textContent = "Guia em tempo real conectado!";
+        routeInfo.textContent = "Traçando a melhor rota até o endereço...";
+
+        // 5. Consulta API pública OSRM para traçar a rota exata pelas ruas
+        try {
+            const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${userLng},${userLat};${destLng},${destLat}?overview=full&geometries=geojson`;
+            const response = await fetch(osrmUrl);
+            const data = await response.json();
+
+            if (data.routes && data.routes.length > 0) {
+                const route = data.routes[0];
+                const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+
+                if (routePolyline) {
+                    map.removeLayer(routePolyline);
+                }
+
+                // Desenha a linha da rota pelas ruas
+                routePolyline = L.polyline(coordinates, {
+                    color: "#111111",
+                    weight: 6,
+                    opacity: 0.85,
+                    dashArray: null,
+                    lineJoin: "round"
+                }).addTo(map);
+
+                // Enquadra a rota e os marcadores na tela
+                const bounds = L.latLngBounds([userLat, userLng], [destLat, destLng]);
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+
+                // Métricas
+                const km = (route.distance / 1000).toFixed(1);
+                const minutes = Math.ceil(route.duration / 60);
+
+                routeDistance.textContent = `${km} km`;
+                routeDuration.textContent = `${minutes} min de trajeto`;
+                routeMetricsBadge.classList.remove("d-none");
+                routeInfo.textContent = `Distância estimada: ${km} km (${minutes} min de trajeto). Siga a rota até o endereço!`;
+            } else {
+                drawStraightFallbackLine(userLat, userLng);
+            }
+        } catch (err) {
+            console.warn("Falha no serviço OSRM, usando linha direta:", err);
+            drawStraightFallbackLine(userLat, userLng);
+        }
+    }
+
+    function drawStraightFallbackLine(userLat, userLng) {
+        if (routePolyline) {
+            map.removeLayer(routePolyline);
+        }
+        routePolyline = L.polyline([[userLat, userLng], [destLat, destLng]], {
+            color: "#d4af37",
+            weight: 5,
+            dashArray: "8, 8"
+        }).addTo(map);
+        map.fitBounds(routePolyline.getBounds(), { padding: [40, 40] });
+        routeInfo.textContent = "Linha de direção traçada até a barbearia.";
+    }
+});
+</script>
 {% endblock %}

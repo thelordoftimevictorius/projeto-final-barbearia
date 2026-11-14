@@ -62,24 +62,34 @@
                 {% endif %}
             </div>
             <div class="card-body">
-                <p class="subtle-label mb-2">BARBEARIA</p>
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+                    <p class="subtle-label mb-0">BARBEARIA</p>
+                    {% if shop.top_barber %}
+                    <span class="badge text-bg-warning text-dark" style="font-size: 0.72rem;">🏆 Barbeiro do mês: {{ shop.top_barber.full_name }}</span>
+                    {% endif %}
+                </div>
                 <h2 class="h5">{{ shop.business_name }}</h2>
                 <p class="text-secondary mb-2">{{ shop.address }}</p>
                 {% if shop.location_is_approximate %}
                 <p class="small text-warning-emphasis">Ponto aproximado, ainda não confirmado pelo estabelecimento.</p>
                 {% endif %}
-                <a class="btn btn-outline-dark w-100" data-route-gps
-                   data-destination-lat="{{ shop.latitude }}"
-                   data-destination-lng="{{ shop.longitude }}"
-                   data-destination-address="{{ shop.address }}"
-                   target="_blank" rel="noopener noreferrer"
-                   href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}&amp;travelmode=driving&amp;dir_action=navigate">Calcular rota</a>
-                <span class="route-status small text-secondary mt-2" data-route-status aria-live="polite"></span>
-                {% if current_user.is_authenticated and current_user.role == 'client' %}
-                <a class="btn btn-dark w-100 mt-2" href="{{ url_for('main.services', shop_id=shop.id) }}">Escolher serviços e agendar</a>
-                {% elif not current_user.is_authenticated %}
-                <a class="btn btn-dark w-100 mt-2" href="{{ url_for('main.register_client') }}">Entre para agendar</a>
-                {% endif %}
+                <div class="d-flex flex-column gap-2 mt-3">
+                    <a class="btn btn-outline-dark w-100" href="{{ url_for('main.barbershop_profile', shop_id=shop.id) }}">
+                        Conhecer perfil &amp; equipe
+                    </a>
+                    <a class="btn btn-outline-secondary w-100 btn-sm" data-route-gps
+                       data-destination-lat="{{ shop.latitude }}"
+                       data-destination-lng="{{ shop.longitude }}"
+                       data-destination-address="{{ shop.address }}"
+                       target="_blank" rel="noopener noreferrer"
+                       href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}&amp;travelmode=driving&amp;dir_action=navigate">Calcular rota</a>
+                    <span class="route-status small text-secondary" data-route-status aria-live="polite"></span>
+                    {% if current_user.is_authenticated and current_user.role == 'client' %}
+                    <a class="btn btn-dark w-100" href="{{ url_for('main.services', shop_id=shop.id) }}">Escolher serviços e agendar</a>
+                    {% elif not current_user.is_authenticated %}
+                    <a class="btn btn-dark w-100" href="{{ url_for('main.register_client') }}">Entre para agendar</a>
+                    {% endif %}
+                </div>
             </div>
         </article>
     </div>

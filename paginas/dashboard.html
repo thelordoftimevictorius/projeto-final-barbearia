@@ -198,33 +198,19 @@
     <div class="col-lg-6">
         <div class="card section-card">
             <div class="card-body">
-                <div class="section-heading mb-3">
-                    <h2 class="h5 mb-0">Barbeiros do mês</h2>
+                <div class="section-heading mb-3 d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0">🏆 Barbeiros do Mês das Barbearias</h2>
+                    <a href="{{ url_for('main.browse_barbershops') }}" class="small">Ver perfis ➔</a>
                 </div>
-                {% if top_barbers_this_month %}
-                <div class="mini-leaderboard">
-                    {% for barber in top_barbers_this_month %}
-                    {% set width = 0 if max_barber_monthly_revenue == 0 else (barber.revenue_total / max_barber_monthly_revenue) * 100 %}
-                    <div class="mini-leaderboard-item">
-                        <div class="mini-leaderboard-header">
-                            <div class="mini-leaderboard-title">
-                                <span class="mini-rank {% if loop.index == 1 %}mini-gold{% elif loop.index == 2 %}mini-silver{% elif loop.index == 3 %}mini-bronze{% endif %}">
-                                    {{ loop.index }}
-                                </span>
-                                <span>{{ barber.full_name }}</span>
-                            </div>
-                            <strong>R$ {{ '%.2f'|format(barber.revenue_total / 100) }}</strong>
-                        </div>
-                        <div class="mini-progress">
-                            <span style="width: {{ width }}%"></span>
-                        </div>
-                        <small>{{ barber.appointments_count }} atendimentos</small>
-                    </div>
-                    {% endfor %}
+                <p class="small text-secondary mb-3">
+                    O ranking de Barbeiro do Mês é exclusivo da equipe de cada barbearia e exibido no perfil individual para os clientes, mantendo os dados financeiros e número de cortes em sigilo.
+                </p>
+                <div class="d-flex flex-column gap-2">
+                    <a class="btn btn-outline-dark text-start d-flex justify-content-between align-items-center" href="{{ url_for('main.browse_barbershops') }}">
+                        <span>Consultar perfis das barbearias e equipes</span>
+                        <span>➔</span>
+                    </a>
                 </div>
-                {% else %}
-                <p class="mb-0 text-secondary">Nenhum atendimento registrado este mês.</p>
-                {% endif %}
             </div>
         </div>
     </div>

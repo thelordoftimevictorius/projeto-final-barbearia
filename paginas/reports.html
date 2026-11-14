@@ -64,6 +64,32 @@
                 <button type="submit" class="btn btn-dark">Votar</button>
             </div>
         </form>
+
+        {% if top_services_this_month %}
+        <hr class="my-4">
+        <div class="section-heading mb-3">
+            <h3 class="h6 mb-0">Ranking de serviços mais votados este mês</h3>
+        </div>
+        <div class="leaderboard-list">
+            {% for service in top_services_this_month %}
+            {% set width = 0 if max_monthly_votes == 0 else (service.vote_count / max_monthly_votes) * 100 %}
+            <div class="leaderboard-item">
+                <div class="leaderboard-header">
+                    <div class="leaderboard-title">
+                        <span class="leaderboard-rank {% if loop.index == 1 %}medal-gold{% elif loop.index == 2 %}medal-silver{% elif loop.index == 3 %}medal-bronze{% endif %}">
+                            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+                        </span>
+                        <span>{{ service.name }}</span>
+                    </div>
+                    <strong>{{ service.vote_count }} votos</strong>
+                </div>
+                <div class="leaderboard-bar">
+                    <span style="width: {{ width }}%"></span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 </div>
 

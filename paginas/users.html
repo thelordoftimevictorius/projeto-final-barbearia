@@ -31,6 +31,8 @@
                         <td>
                             {% if user.role == 'admin' %}
                                 <span class="badge text-bg-dark">Administrador</span>
+                            {% elif user.role == 'business_owner' %}
+                                <span class="badge text-bg-warning text-dark">Dono de Barbearia</span>
                             {% elif user.role == 'client' %}
                                 <span class="badge text-bg-info text-dark">Cliente</span>
                             {% else %}
@@ -50,6 +52,7 @@
                                 <form action="{{ url_for('main.update_user_role', user_id=user.id) }}" method="post" class="d-flex gap-2 align-items-center">
                                     <select class="form-select form-select-sm" name="role">
                                         <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Administrador</option>
+                                        <option value="business_owner" {% if user.role == 'business_owner' %}selected{% endif %}>Dono de Barbearia</option>
                                         <option value="employee" {% if user.role == 'employee' %}selected{% endif %}>Funcionário</option>
                                         <option value="client" {% if user.role == 'client' %}selected{% endif %}>Cliente</option>
                                     </select>

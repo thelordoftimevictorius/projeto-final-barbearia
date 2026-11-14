@@ -33,18 +33,26 @@
     {% if shop %}
     <div class="shop-location-panel mb-4">
         <div>
-            <strong>{{ shop.business_name }}</strong>
-            <p class="mb-1">{{ shop.address }}</p>
-            {% if shop.location_is_approximate %}<small>Localização aproximada; confirme o endereço antes de ir.</small>{% endif %}
+            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <strong class="fs-5">{{ shop.business_name }}</strong>
+                {% if top_barber %}
+                <span class="badge text-bg-warning text-dark" style="font-size: 0.75rem;">🏆 Barbeiro do mês: {{ top_barber.full_name }}</span>
+                {% endif %}
+            </div>
+            <p class="mb-1 text-secondary">{{ shop.address }}</p>
+            {% if shop.location_is_approximate %}<small class="text-warning-emphasis d-block mb-1">Localização aproximada; confirme o endereço antes de ir.</small>{% endif %}
         </div>
-        <div>
-            <a class="btn btn-outline-dark" data-route-gps
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a class="btn btn-sm btn-outline-dark" href="{{ url_for('main.barbershop_profile', shop_id=shop.id) }}">
+                Ver perfil &amp; equipe da barbearia ➔
+            </a>
+            <a class="btn btn-sm btn-dark" data-route-gps
                data-destination-lat="{{ shop.latitude }}"
                data-destination-lng="{{ shop.longitude }}"
                data-destination-address="{{ shop.address }}"
                target="_blank" rel="noopener noreferrer"
                href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}&amp;travelmode=driving&amp;dir_action=navigate">Abrir rota e GPS</a>
-            <span class="route-status small d-block mt-2" data-route-status aria-live="polite"></span>
+            <span class="route-status small d-block mt-1 w-100" data-route-status aria-live="polite"></span>
         </div>
     </div>
     {% endif %}
@@ -59,7 +67,7 @@
                             <img class="service-catalog-image" src="{{ service.image_url }}" alt="{{ service.name }}" loading="lazy">
                         {% else %}
                             <div class="no-photo-placeholder service-catalog-placeholder">
-                                <span>BARBER LUX</span>
+                                <span>BM</span>
                             </div>
                         {% endif %}
                         <span class="duration-pill">⏱ {{ service.duration_minutes }} min</span>
@@ -88,6 +96,16 @@
      VISÃO DO DONO / BARBEARIA: PAINEL VISUAL DE EDIÇÃO
 ========================================================= -->
 {% else %}
+<div class="list-toolbar mb-4">
+    <div>
+        <p class="subtle-label">Catálogo</p>
+        <h1 class="h3 mb-0">Serviços</h1>
+    </div>
+    {% if current_user.role in ['admin', 'business_owner'] %}
+    <a href="{{ url_for('main.create_service') }}" class="btn btn-dark">Novo serviço</a>
+    {% endif %}
+</div>
+
 <div class="owner-catalog-grid">
     {% for service in services %}
     <div class="owner-service-card">

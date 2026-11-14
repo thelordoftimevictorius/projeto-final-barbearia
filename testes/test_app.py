@@ -1081,6 +1081,245 @@ class AppTestCase(unittest.TestCase):
         )
         image_path.unlink(missing_ok=True)
 
+    def test_business_owner_can_create_appointment_for_any_client(self):
+        from banco_de_dados.db import get_db
+
+        register_response = self.client.post(
+            "/cadastro/barbearia",
+            data={
+                "full_name": "Dono Teste",
+                "business_name": "Barbearia do Dono",
+                "email": "dono@barbearia.local",
+                "phone": "87999990001",
+                "address": "Rua Central, 10, Serra Talhada",
+                "latitude": "-7.9868",
+                "longitude": "-38.2920",
+                "password": "senha12345",
+                "password_confirmation": "senha12345",
+            },
+            follow_redirects=True,
+        )
+        self.assertEqual(register_response.status_code, 200)
+
+        with self.app.app_context():
+            db = get_db()
+            barber = db.execute("SELECT id FROM barbers WHERE full_name = 'Profissional de demonstração'").fetchone()
+            service = db.execute("SELECT id FROM services WHERE name = 'Corte tradicional'").fetchone()
+            client = db.execute("SELECT id FROM clients WHERE email = 'cliente@barber.local'").fetchone()
+
+        tomorrow = (date.today() + timedelta(days=1)).isoformat()
+        starts_at = f"{tomorrow}T10:00"
+
+        booking_response = self.client.post(
+            "/appointments/new",
+            data={
+                "client_id": client["id"],
+                "barber_id": barber["id"],
+                "service_id": service["id"],
+                "starts_at": starts_at,
+                "status": "scheduled",
+            },
+            follow_redirects=True,
+        )
+        self.assertEqual(booking_response.status_code, 200)
+        self.assertIn(b"Agendamento realizado com sucesso", booking_response.data)
+
+        with self.app.app_context():
+            db = get_db()
+            saved = db.execute(
+                "SELECT * FROM appointments WHERE client_id = ? AND barber_id = ?",
+                (client["id"], barber["id"]),
+            ).fetchone()
+            self.assertIsNotNone(saved)
+            self.assertEqual(saved["price_cents"], 3500)
+
+    def test_barber_profile_photo_upload_edit_and_remove(self):
+        with self.app.app_context():
+            from banco_de_dados.db import create_default_admin, get_db, init_db
+
+            init_db()
+            create_default_admin()
+
+        self.client.post(
+            "/login",
+            data={"email": "admin@barber.local", "password": "admin123"},
+            follow_redirects=False,
+        )
+
+        create_resp = self.client.post(
+            "/barbers/new",
+            data={
+                "full_name": "Barbeiro Estiloso",
+                "phone": "11999998888",
+                "specialty": "Degradê e barba",
+                "status": "active",
+                "profile_photo_url": "https://example.com/avatar.jpg",
+            },
+            follow_redirects=True,
+        )
+        self.assertEqual(create_resp.status_code, 200)
+        self.assertIn("Barbeiro Estiloso", create_resp.get_data(as_text=True))
+        self.assertIn("https://example.com/avatar.jpg", create_resp.get_data(as_text=True))
+
+        with self.app.app_context():
+            db = get_db()
+            barber = db.execute(
+                "SELECT * FROM barbers WHERE full_name = ?",
+                ("Barbeiro Estiloso",),
+            ).fetchone()
+            self.assertIsNotNone(barber)
+            barber_id = barber["id"]
+            self.assertEqual(barber["profile_photo_url"], "https://example.com/avatar.jpg")
+
+        png_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+        edit_resp = self.client.post(
+            f"/barbers/{barber_id}/edit",
+            data={
+                "full_name": "Barbeiro Estiloso Atualizado",
+                "phone": "11999998888",
+                "specialty": "Degradê e barba",
+                "status": "active",
+                "profile_photo_url": "",
+                "photo_file": (io.BytesIO(png_data), "foto.png"),
+            },
+            content_type="multipart/form-data",
+            follow_redirects=True,
+        )
+        self.assertEqual(edit_resp.status_code, 200)
+
+        with self.app.app_context():
+            db = get_db()
+            updated = db.execute(
+                "SELECT * FROM barbers WHERE id = ?",
+                (barber_id,),
+            ).fetchone()
+            self.assertTrue(updated["profile_photo_url"].startswith("/barbeiros/imagens/"))
+            image_url = updated["profile_photo_url"]
+
+        img_resp = self.client.get(image_url)
+        self.assertEqual(img_resp.status_code, 200)
+
+        remove_resp = self.client.post(
+            f"/barbers/{barber_id}/edit",
+            data={
+                "full_name": "Barbeiro Estiloso Atualizado",
+                "phone": "11999998888",
+                "specialty": "Degradê e barba",
+                "status": "active",
+                "profile_photo_url": "",
+                "remove_photo": "1",
+            },
+            follow_redirects=True,
+        )
+        self.assertEqual(remove_resp.status_code, 200)
+
+        with self.app.app_context():
+            db = get_db()
+            cleared = db.execute(
+                "SELECT * FROM barbers WHERE id = ?",
+                (barber_id,),
+            ).fetchone()
+            self.assertIsNone(cleared["profile_photo_url"])
+
+    def test_barbershop_profile_barber_of_month_and_internal_ranking(self):
+        with self.app.app_context():
+            from banco_de_dados.db import create_default_admin, get_db, init_db
+
+            init_db()
+            create_default_admin()
+            db = get_db()
+            owner_id = db.execute(
+                """
+                INSERT INTO users (full_name, email, password_hash, role)
+                VALUES (?, ?, ?, 'business_owner')
+                """,
+                ("Dono Teste", "dono.teste@barber.local", "hash123"),
+            ).lastrowid
+            shop_id = db.execute(
+                """
+                INSERT INTO barbershops (owner_user_id, business_name, phone, email, address, latitude, longitude)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (owner_id, "Barbearia Real", "87999990000", "real@barber.local", "Rua Centro, 100", -7.99, -38.30),
+            ).lastrowid
+
+            b1_id = db.execute(
+                """
+                INSERT INTO barbers (shop_id, full_name, phone, specialty, status)
+                VALUES (?, ?, ?, ?, 'active')
+                """,
+                (shop_id, "Barbeiro Campeão", "87999991111", "Corte degradê"),
+            ).lastrowid
+            b2_id = db.execute(
+                """
+                INSERT INTO barbers (shop_id, full_name, phone, specialty, status)
+                VALUES (?, ?, ?, ?, 'active')
+                """,
+                (shop_id, "Barbeiro Segundo", "87999992222", "Barba terapia"),
+            ).lastrowid
+
+            other_owner = db.execute(
+                """
+                INSERT INTO users (full_name, email, password_hash, role)
+                VALUES (?, ?, ?, 'business_owner')
+                """,
+                ("Outro Dono", "outro.dono@barber.local", "hash123"),
+            ).lastrowid
+            other_shop = db.execute(
+                """
+                INSERT INTO barbershops (owner_user_id, business_name, phone, email, address, latitude, longitude)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (other_owner, "Outra Barbearia", "87999993333", "outro@barber.local", "Rua Outra, 200", -7.98, -38.29),
+            ).lastrowid
+            db.execute(
+                """
+                INSERT INTO barbers (shop_id, full_name, phone, specialty, status)
+                VALUES (?, ?, ?, ?, 'active')
+                """,
+                (other_shop, "Barbeiro Estranho", "87999994444", "Outro serviço"),
+            )
+
+            service_id = db.execute(
+                """
+                INSERT INTO services (shop_id, name, price_cents, duration_minutes, status)
+                VALUES (?, ?, ?, ?, 'active')
+                """,
+                (shop_id, "Corte Vip", 4500, 30),
+            ).lastrowid
+            client_id = db.execute(
+                """
+                INSERT INTO clients (full_name, phone)
+                VALUES (?, ?)
+                """,
+                ("Cliente Feliz", "87988887777"),
+            ).lastrowid
+            current_month = date.today().strftime("%Y-%m")
+            db.execute(
+                """
+                INSERT INTO appointments (shop_id, client_id, barber_id, service_id, starts_at, ends_at, price_cents, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')
+                """,
+                (shop_id, client_id, b1_id, service_id, f"{current_month}-10 10:00:00", f"{current_month}-10 10:30:00", 4500),
+            )
+            db.commit()
+
+        resp = self.client.get(f"/barbearias/{shop_id}")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.get_data(as_text=True)
+        self.assertIn("Barbearia Real", html)
+        self.assertIn("Barbeiro Campeão", html)
+        self.assertIn("Barbeiro do Mês", html)
+        self.assertIn("Barbeiro Segundo", html)
+        self.assertNotIn("Barbeiro Estranho", html)
+        self.assertNotIn("atendimento(s) neste mês", html)
+
+        list_resp = self.client.get("/barbearias")
+        self.assertEqual(list_resp.status_code, 200)
+        list_html = list_resp.get_data(as_text=True)
+        self.assertIn(f"/barbearias/{shop_id}", list_html)
+        self.assertIn("Barbeiro do mês: Barbeiro Campeão", list_html)
+
 
 if __name__ == "__main__":
     unittest.main()

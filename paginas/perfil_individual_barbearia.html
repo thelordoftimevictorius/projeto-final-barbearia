@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}{{ shop.business_name }} | Perfil da Barbearia | Barber Manager{% endblock %}
+
+{% block page_styles %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+.shop-hero-card {
+    background: linear-gradient(135deg, #161616 0%, #252422 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    color: #fff;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+.shop-hero-img {
+    width: 100%;
+    height: 240px;
+    object-fit: cover;
+}
+.top-barber-hero-badge {
+    background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
+    color: #111;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    border-radius: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.35);
+}
+.top-barber-card {
+    background: linear-gradient(145deg, #ffffff, #faf7f0);
+    border: 2px solid #d4af37 !important;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(212, 175, 55, 0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.top-barber-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(212, 175, 55, 0.25);
+}
+.rank-pill {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.rank-gold {
+    background: linear-gradient(135deg, #d4af37, #f6e07a);
+    color: #1a1600;
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+}
+.rank-silver {
+    background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+    color: #0f172a;
+}
+.rank-bronze {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: #fff;
+}
+.rank-other {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+.team-member-item {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 12px 16px;
+    transition: all 0.2s ease;
+}
+.team-member-item:hover {
+    background: #fcfcfc;
+    border-color: #dee2e6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- CABEÇALHO / PERFIL DA BARBEARIA -->
+<section class="shop-hero-card mb-4" aria-labelledby="shop-profile-title">
+    <div class="row g-0 align-items-center">
+        <div class="col-md-5">
+            {% if shop.image_url %}
+            <img src="{{ shop.image_url }}" alt="Foto da {{ shop.business_name }}" class="shop-hero-img">
+            {% else %}
+            <img src="{{ url_for('static', filename='images/barbershop-hero.jpg') }}" alt="Imagem da {{ shop.business_name }}" class="shop-hero-img">
+            {% endif %}
+        </div>
+        <div class="col-md-7 p-4 p-lg-5">
+            <span class="subtle-label text-warning mb-2 d-inline-block">PERFIL OFICIAL</span>
+            <h1 id="shop-profile-title" class="h2 mb-2 text-white">{{ shop.business_name }}</h1>
+            <p class="text-white-50 mb-3"><i class="bi bi-geo-alt me-1"></i>{{ shop.address }}</p>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <a class="btn btn-warning text-dark fw-bold px-3 py-2" href="{{ url_for('main.appointments', shop_id=shop.id) }}">
+                    🗓 Agendar atendimento
+                </a>
+                <a class="btn btn-outline-light px-3 py-2" data-route-gps
+                   data-destination-lat="{{ shop.latitude }}"
+                   data-destination-lng="{{ shop.longitude }}"
+                   data-destination-address="{{ shop.address }}"
+                   target="_blank" rel="noopener noreferrer"
+                   href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}&amp;travelmode=driving&amp;dir_action=navigate">
+                    📍 Como chegar (GPS)
+                </a>
+                <a class="btn btn-outline-light px-3 py-2" href="{{ url_for('main.browse_barbershops') }}">
+                    ← Ver todas as barbearias
+                </a>
+            </div>
+            <span class="route-status small text-warning mt-2 d-block" data-route-status aria-live="polite"></span>
+        </div>
+    </div>
+</section>
+
+<!-- SEÇÃO: BARBEIRO DO MÊS & EQUIPE DA BARBEARIA -->
+<section class="mb-5" aria-labelledby="barbers-section-heading">
+    <div class="section-heading mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <p class="subtle-label mb-1">EQUIPE &amp; PROFISSIONAIS</p>
+            <h2 id="barbers-section-heading" class="h4 mb-0">Barbeiro do Mês &amp; Ranking da Equipe</h2>
+            <p class="text-secondary small mb-0">Destaques profissionais exclusivos da equipe de <strong>{{ shop.business_name }}</strong> em {{ month_label }}.</p>
+        </div>
+        <span class="top-barber-hero-badge">🏆 {{ month_label }}</span>
+    </div>
+
+    <div class="row g-4 align-items-stretch">
+        <!-- CARD DE DESTAQUE: BARBEIRO DO MÊS -->
+        {% if top_barber %}
+        {% set top_photo = top_barber.profile_photo_url or 'https://ui-avatars.com/api/?name=' ~ top_barber.full_name|urlencode ~ '&background=111111&color=d4af37&size=200' %}
+        <div class="col-lg-5">
+            <div class="card h-100 top-barber-card p-4 text-center d-flex flex-column justify-content-between">
+                <div>
+                    <div class="d-inline-block position-relative mb-3">
+                        <img src="{{ top_photo }}" alt="Foto de {{ top_barber.full_name }}"
+                             class="rounded-circle border border-3 border-warning shadow"
+                             style="width: 120px; height: 120px; object-fit: cover;">
+                        <span class="position-absolute bottom-0 end-0 bg-warning text-dark rounded-circle p-2 shadow" style="font-size: 1.2rem; line-height: 1;" title="Barbeiro do Mês">
+                            🏆
+                        </span>
+                    </div>
+                    <div class="mb-2">
+                        <span class="badge text-bg-warning text-dark fw-bold px-3 py-2 text-uppercase" style="letter-spacing: 0.5px;">
+                            ⭐ Barbeiro do Mês
+                        </span>
+                    </div>
+                    <h3 class="h4 mb-1 text-dark">{{ top_barber.full_name }}</h3>
+                    <p class="text-secondary mb-3">{{ top_barber.specialty or 'Especialista em cortes clássicos e modernos' }}</p>
+                    <p class="small text-muted mb-4 px-2">
+                        Reconhecido como o profissional número 1 de <strong>{{ shop.business_name }}</strong> pelo atendimento impecável neste mês.
+                    </p>
+                </div>
+                <div>
+                    <a class="btn btn-dark w-100 fw-bold py-2" href="{{ url_for('main.appointments', shop_id=shop.id, barber_id=top_barber.id) }}">
+                        Agendar com {{ top_barber.full_name }} ➔
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- LISTA / RANKING DOS PROFISSIONAIS DA BARBEARIA -->
+        <div class="{% if top_barber %}col-lg-7{% else %}col-12{% endif %}">
+            <div class="card shadow-sm border-0 section-card h-100">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h3 class="h5 mb-0">Classificação dos Profissionais</h3>
+                            <span class="badge text-bg-light border text-secondary">Apenas funcionários desta barbearia</span>
+                        </div>
+                        <p class="small text-secondary mb-3">Conheça nossos profissionais e escolha seu barbeiro favorito para o seu corte:</p>
+                        
+                        <div class="d-flex flex-column gap-2 mb-3">
+                            {% for b in ranking %}
+                            {% set b_photo = b.profile_photo_url or 'https://ui-avatars.com/api/?name=' ~ b.full_name|urlencode ~ '&background=111111&color=d4af37&size=100' %}
+                            <div class="team-member-item d-flex align-items-center justify-content-between gap-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="rank-pill {% if b.rank == 1 %}rank-gold{% elif b.rank == 2 %}rank-silver{% elif b.rank == 3 %}rank-bronze{% else %}rank-other{% endif %}">
+                                        {{ b.rank }}º
+                                    </span>
+                                    <img src="{{ b_photo }}" alt="Foto de {{ b.full_name }}" class="rounded-circle border" style="width: 44px; height: 44px; object-fit: cover;">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <strong class="text-dark">{{ b.full_name }}</strong>
+                                            {% if b.is_top %}
+                                            <span class="badge text-bg-warning text-dark small" style="font-size: 0.68rem;">🏆 Barbeiro do Mês</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-secondary d-block">{{ b.specialty or 'Barbeiro' }}</small>
+                                    </div>
+                                </div>
+                                <a class="btn btn-sm btn-outline-dark" href="{{ url_for('main.appointments', shop_id=shop.id, barber_id=b.id) }}">
+                                    Agendar
+                                </a>
+                            </div>
+                            {% else %}
+                            <p class="text-secondary mb-0 py-3">Nenhum barbeiro ativo cadastrado nesta barbearia por enquanto.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="pt-2 border-top">
+                        <small class="text-muted fst-italic">
+                            ✓ O ranking de destaque é atualizado mensalmente com base na avaliação e preferência dos clientes.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SEÇÃO: CATÁLOGO DE CORTES E SERVIÇOS -->
+<section class="mb-5" aria-labelledby="services-section-heading">
+    <div class="section-heading mb-3">
+        <p class="subtle-label mb-1">CARDÁPIO DE ESTILOS</p>
+        <h2 id="services-section-heading" class="h4 mb-0">Serviços e Valores de {{ shop.business_name }}</h2>
+    </div>
+
+    <div class="row g-3">
+        {% for service in services %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-0 section-card p-3 d-flex flex-column justify-content-between">
+                <div>
+                    {% if service.image_url %}
+                    <img src="{{ service.image_url }}" alt="{{ service.name }}" class="rounded-3 w-100 mb-3" style="height: 160px; object-fit: cover;">
+                    {% endif %}
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <h3 class="h5 mb-0 text-dark">{{ service.name }}</h3>
+                        <span class="badge text-bg-dark fs-6">R$ {{ '%.2f'|format(service.price_cents / 100)|replace('.', ',') }}</span>
+                    </div>
+                    <p class="text-secondary small mb-2">{{ service.description or 'Corte e finalização personalizada.' }}</p>
+                    <span class="badge text-bg-light border text-secondary mb-3">⏱ {{ service.duration_minutes }} minutos</span>
+                </div>
+                <div>
+                    <a class="btn btn-dark w-100" href="{{ url_for('main.appointments', shop_id=shop.id, service_id=service.id) }}">
+                        Agendar este serviço
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card shadow-sm border-0 section-card p-4 text-center text-secondary">
+                Esta barbearia ainda não possui serviços ativos listados no catálogo.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- SEÇÃO: LOCALIZAÇÃO E MAPA -->
+<section class="mb-4" aria-labelledby="location-section-heading">
+    <div class="section-heading mb-3">
+        <p class="subtle-label mb-1">LOCALIZAÇÃO</p>
+        <h2 id="location-section-heading" class="h4 mb-0">Onde nos encontrar</h2>
+        <p class="text-secondary small mb-0">{{ shop.address }}</p>
+    </div>
+    <div class="card shadow-sm border-0 section-card overflow-hidden">
+        <div id="barbershopMap" style="height: 320px; width: 100%;"
+             data-shop-id="{{ shop.id }}"
+             data-shop-lat="{{ shop.latitude }}"
+             data-shop-lng="{{ shop.longitude }}"
+             data-shop-name="{{ shop.business_name }}"
+             data-shop-address="{{ shop.address }}">
+        </div>
+        <div class="p-3 bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span class="text-secondary small"><i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ shop.address }}</span>
+            <a class="btn btn-dark btn-sm" data-route-gps
+               data-destination-lat="{{ shop.latitude }}"
+               data-destination-lng="{{ shop.longitude }}"
+               data-destination-address="{{ shop.address }}"
+               target="_blank" rel="noopener noreferrer"
+               href="https://www.google.com/maps/dir/?api=1&amp;destination={{ shop.latitude }},{{ shop.longitude }}&amp;travelmode=driving&amp;dir_action=navigate">
+                Abrir GPS em tempo real ➔
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const mapElement = document.getElementById("barbershopMap");
+    if (!mapElement || !window.L) return;
+
+    const lat = Number.parseFloat(mapElement.dataset.shopLat) || -7.9868;
+    const lng = Number.parseFloat(mapElement.dataset.shopLng) || -38.2920;
+    const shopName = mapElement.dataset.shopName || "Barbearia";
+    const shopAddress = mapElement.dataset.shopAddress || "";
+
+    const map = window.L.map(mapElement).setView([lat, lng], 16);
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap',
+    }).addTo(map);
+
+    const marker = window.L.marker([lat, lng]).addTo(map);
+    marker.bindPopup(`<strong>${shopName}</strong><br><small>${shopAddress}</small>`).openPopup();
+});
+</script>
+{% endblock %}

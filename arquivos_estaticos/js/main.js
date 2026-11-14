@@ -243,3 +243,32 @@ function scrollCatalog(direction) {
         viewport.scrollBy({ left: direction * 300, behavior: "smooth" });
     }
 }
+
+function selectBarberCard(barberId) {
+    const select = document.getElementById("barber_id");
+    if (!select) return;
+    select.value = barberId;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+    highlightSelectedBarberCard(barberId);
+}
+
+function highlightSelectedBarberCard(barberId) {
+    document.querySelectorAll(".barber-picker-item").forEach((card) => {
+        if (card.id === `barber-card-${barberId}`) {
+            card.style.borderColor = "#a77d3f";
+            card.style.backgroundColor = "#fff8ee";
+            card.style.boxShadow = "0 0 0 2px rgba(167, 125, 63, 0.25)";
+        } else {
+            card.style.borderColor = "#dee2e6";
+            card.style.backgroundColor = "#fafafa";
+            card.style.boxShadow = "none";
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const barberSelect = document.getElementById("barber_id");
+    if (barberSelect && barberSelect.value) {
+        highlightSelectedBarberCard(barberSelect.value);
+    }
+});

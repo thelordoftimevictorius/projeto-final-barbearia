@@ -69,7 +69,7 @@
                             <img class="service-catalog-image" src="{{ service.image_url }}" alt="Foto do serviço {{ service.name }}" loading="lazy">
                             {% else %}
                             <div class="no-photo-placeholder service-catalog-placeholder">
-                                <span>BARBER LUX</span>
+                                <span>BM</span>
                             </div>
                             {% endif %}
                             <span class="duration-pill">{{ service.duration_minutes }} min</span>
@@ -118,12 +118,38 @@
                     </select>
                 </div>
                 {% endif %}
+                <div class="col-12">
+                    <label class="form-label d-block mb-2">Profissionais disponíveis (clique para escolher)</label>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        {% for barber in barbers %}
+                        {% set b_photo = barber.profile_photo_url or 'https://ui-avatars.com/api/?name=' ~ barber.full_name|urlencode ~ '&background=111111&color=d4af37&size=128' %}
+                        <div class="card p-2 border rounded-3 d-flex flex-row align-items-center gap-2 barber-picker-item {% if barber.id == top_barber_id %}border-warning{% endif %}"
+                             id="barber-card-{{ barber.id }}"
+                             style="cursor: pointer; background: {% if barber.id == selected_barber_id %}#fff8ee{% else %}#fafafa{% endif %}; min-width: 180px; transition: all 0.2s ease;"
+                             onclick="selectBarberCard('{{ barber.id }}')">
+                            <img src="{{ b_photo }}" alt="Foto de {{ barber.full_name }}" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;">
+                            <div>
+                                <div class="d-flex align-items-center gap-1">
+                                    <strong class="d-block text-dark small">{{ barber.full_name }}</strong>
+                                </div>
+                                {% if barber.id == top_barber_id %}
+                                <span class="badge text-bg-warning text-dark mb-1" style="font-size: 0.62rem; padding: 2px 5px;">🏆 Barbeiro do Mês</span>
+                                {% endif %}
+                                <small class="text-secondary d-block" style="font-size: 0.72rem;">{{ barber.specialty or 'Barbeiro' }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
                 <div class="col-md-6">
-                    <label class="form-label" for="barber_id">Barbeiro</label>
-                    <select id="barber_id" name="barber_id" class="form-select" required>
+                    <label class="form-label" for="barber_id">Barbeiro selecionado</label>
+                    <select id="barber_id" name="barber_id" class="form-select" required onchange="highlightSelectedBarberCard(this.value)">
                         <option value="">Selecione um barbeiro</option>
                         {% for barber in barbers %}
-                        <option value="{{ barber.id }}">{{ barber.full_name }}{% if barber.specialty %} — {{ barber.specialty }}{% endif %}</option>
+                        <option value="{{ barber.id }}" {% if selected_barber_id == barber.id or (not selected_barber_id and barber.id == top_barber_id and barbers|length == 1) %}selected{% endif %}>
+                            {{ barber.full_name }}{% if barber.id == top_barber_id %} 🏆 (Barbeiro do Mês){% endif %}{% if barber.specialty %} — {{ barber.specialty }}{% endif %}
+                        </option>
                         {% endfor %}
                     </select>
                 </div>
@@ -176,7 +202,13 @@
                 <tbody>
                     {% for appointment in appointments %}
                     <tr>
-                        <td>{{ appointment.barber_name }}</td>
+                        <td>
+                            {% set b_photo = appointment.barber_photo_url or 'https://ui-avatars.com/api/?name=' ~ appointment.barber_name|urlencode ~ '&background=111111&color=d4af37&size=96' %}
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="{{ b_photo }}" alt="Foto de {{ appointment.barber_name }}" class="rounded-circle border" style="width: 32px; height: 32px; object-fit: cover;">
+                                <span>{{ appointment.barber_name }}</span>
+                            </div>
+                        </td>
                         <td>{{ appointment.service_name }}</td>
                         <td>{{ appointment.starts_at }}</td>
                         <td>{{ appointment.ends_at }}</td>

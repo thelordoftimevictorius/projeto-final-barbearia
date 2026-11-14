@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS barbers (
     full_name TEXT NOT NULL,
     phone TEXT NOT NULL,
     specialty TEXT,
+    profile_photo_url TEXT,
     status TEXT NOT NULL DEFAULT 'active'
         CHECK (status IN ('active', 'inactive')),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -3,31 +3,116 @@
 {% block title %}Barbeiros | Barber Manager{% endblock %}
 
 {% block content %}
-<div class="list-toolbar">
+<div class="list-toolbar mb-4">
     <div>
         <p class="subtle-label">Equipe</p>
-        <h1 class="h3 mb-0">Barbeiros</h1>
+        <h1 class="h3 mb-0">Barbeiros e Profissionais</h1>
     </div>
-    <a href="{{ url_for('main.create_barber') }}" class="btn btn-dark">Novo barbeiro</a>
+    <a href="{{ url_for('main.create_barber') }}" class="btn btn-dark">+ Novo barbeiro</a>
 </div>
+
+{% if ranking %}
+<!-- PAINEL DE DESTAQUE: BARBEIRO DO MÊS & RANKING INTERNO DA BARBEARIA -->
+<div class="card shadow-sm border-0 section-card mb-4" style="background: linear-gradient(145deg, #ffffff, #faf8f5); border: 1px solid #ebd9a2 !important;">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <p class="subtle-label mb-1">RECONHECIMENTO DA EQUIPE</p>
+                <h2 class="h5 mb-0">🏆 Barbeiro do Mês &amp; Ranking Interno</h2>
+            </div>
+            <span class="badge text-bg-warning text-dark px-3 py-2 fw-bold">Período: {{ month_label }}</span>
+        </div>
+
+        <div class="row g-3 align-items-center">
+            {% if top_barber %}
+            {% set top_photo = top_barber.profile_photo_url or 'https://ui-avatars.com/api/?name=' ~ top_barber.full_name|urlencode ~ '&background=111111&color=d4af37&size=160' %}
+            <div class="col-md-5 col-lg-4">
+                <div class="card p-3 border-warning bg-warning-subtle text-center rounded-3 shadow-sm">
+                    <div class="d-inline-block position-relative mb-2">
+                        <img src="{{ top_photo }}" alt="{{ top_barber.full_name }}" class="rounded-circle border border-2 border-warning shadow-sm" style="width: 80px; height: 80px; object-fit: cover;">
+                        <span class="position-absolute bottom-0 end-0 bg-warning text-dark rounded-circle p-1 shadow-sm" style="font-size: 1rem; line-height: 1;">🏆</span>
+                    </div>
+                    <span class="badge bg-warning text-dark fw-bold mb-1">Barbeiro do Mês</span>
+                    <strong class="d-block text-dark fs-5">{{ top_barber.full_name }}</strong>
+                    <small class="text-secondary d-block">{{ top_barber.specialty or 'Barbeiro' }}</small>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="col-md-7 col-lg-8">
+                <h3 class="h6 mb-2 text-dark">Ranking Interno dos Funcionários:</h3>
+                <div class="d-flex flex-column gap-2">
+                    {% for b in ranking %}
+                    {% set b_photo = b.profile_photo_url or 'https://ui-avatars.com/api/?name=' ~ b.full_name|urlencode ~ '&background=111111&color=d4af37&size=80' %}
+                    <div class="p-2 border rounded-3 bg-white d-flex align-items-center justify-content-between gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge {% if b.rank == 1 %}text-bg-warning text-dark{% elif b.rank == 2 %}text-bg-secondary{% elif b.rank == 3 %}text-bg-dark{% else %}text-bg-light border text-secondary{% endif %}">
+                                {% if b.rank == 1 %}🥇 1º{% elif b.rank == 2 %}🥈 2º{% elif b.rank == 3 %}🥉 3º{% else %}{{ b.rank }}º{% endif %}
+                            </span>
+                            <img src="{{ b_photo }}" alt="{{ b.full_name }}" class="rounded-circle border" style="width: 32px; height: 32px; object-fit: cover;">
+                            <strong class="small text-dark">{{ b.full_name }}</strong>
+                            {% if b.is_top %}
+                            <span class="badge text-bg-warning text-dark" style="font-size: 0.65rem;">🏆 Barbeiro do Mês</span>
+                            {% endif %}
+                        </div>
+                        <span class="small text-secondary">{{ b.cuts_count }} atendimento(s) neste mês</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="card shadow-sm border-0 grid-card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>Nome</th>
+                        <th style="min-width: 240px;">Profissional</th>
+                        <th>Ranking Interno</th>
                         <th>Telefone</th>
                         <th>Especialidade</th>
                         <th>Status</th>
-                        <th>Ações</th>
+                        <th style="min-width: 150px;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for barber in barbers %}
+                    {% set barber_photo = barber.profile_photo_url or 'https://ui-avatars.com/api/?name=' ~ barber.full_name|urlencode ~ '&background=111111&color=d4af37&size=128' %}
+                    {% set rank_info = ranking_by_barber_id.get(barber.id) if ranking_by_barber_id else None %}
                     <tr>
-                        <td>{{ barber.full_name }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <img
+                                    src="{{ barber_photo }}"
+                                    alt="Foto de perfil de {{ barber.full_name }}"
+                                    class="rounded-circle border border-2 shadow-sm"
+                                    style="width: 48px; height: 48px; object-fit: cover;"
+                                    loading="lazy"
+                                >
+                                <div>
+                                    <strong class="d-block text-dark">{{ barber.full_name }}</strong>
+                                    {% if rank_info and rank_info.is_top %}
+                                    <span class="badge text-bg-warning text-dark" style="font-size: 0.68rem;">🏆 Barbeiro do Mês</span>
+                                    {% endif %}
+                                    {% if barber.profile_photo_url %}
+                                    <span class="badge text-bg-light text-secondary border" style="font-size: 0.65rem;">Foto personalizada</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if rank_info %}
+                            <span class="badge {% if rank_info.rank == 1 %}text-bg-warning text-dark{% elif rank_info.rank == 2 %}text-bg-secondary{% elif rank_info.rank == 3 %}text-bg-dark{% else %}text-bg-light text-secondary border{% endif %}">
+                                {% if rank_info.rank == 1 %}🥇 1º Lugar{% elif rank_info.rank == 2 %}🥈 2º Lugar{% elif rank_info.rank == 3 %}🥉 3º Lugar{% else %}{{ rank_info.rank }}º Lugar{% endif %}
+                            </span>
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
                         <td>{{ barber.phone }}</td>
                         <td>{{ barber.specialty or '-' }}</td>
                         <td>
@@ -39,8 +124,10 @@
                         </td>
                         <td>
                             <div class="d-flex gap-2">
-                                <a href="{{ url_for('main.edit_barber', barber_id=barber.id) }}" class="btn btn-sm btn-outline-dark">Editar</a>
-                                <form action="{{ url_for('main.delete_barber', barber_id=barber.id) }}" method="post">
+                                <a href="{{ url_for('main.edit_barber', barber_id=barber.id) }}" class="btn btn-sm btn-outline-dark">
+                                    Editar / Foto
+                                </a>
+                                <form action="{{ url_for('main.delete_barber', barber_id=barber.id) }}" method="post" onsubmit="return confirm('Deseja realmente excluir este profissional?');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
                                 </form>
                             </div>
@@ -48,7 +135,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">Nenhum barbeiro cadastrado.</td>
+                        <td colspan="6" class="text-center text-muted py-4">Nenhum barbeiro cadastrado na equipe.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

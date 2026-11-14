@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-lg-7">
-        <div class="card shadow-sm border-0">
+        <div class="card shadow-sm border-0 form-card">
             <div class="card-body p-4 p-md-5">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h1 class="h3 mb-0">{% if barber %}Editar barbeiro{% else %}Novo barbeiro{% endif %}</h1>
@@ -16,19 +16,34 @@
                 <div class="alert alert-danger" role="alert">{{ error }}</div>
                 {% endif %}
 
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <div class="row g-3">
+                        <!-- Preview da Foto de Perfil -->
+                        <div class="col-12 text-center mb-2">
+                            {% set default_avatar = 'https://ui-avatars.com/api/?name=' ~ (barber.full_name if barber else 'Novo Barbeiro')|urlencode ~ '&background=111111&color=d4af37&size=200' %}
+                            <div class="position-relative d-inline-block">
+                                <img
+                                    id="barber_photo_preview"
+                                    src="{{ barber.profile_photo_url if barber and barber.profile_photo_url else default_avatar }}"
+                                    alt="Foto de perfil do barbeiro"
+                                    class="rounded-circle border border-3 shadow-sm"
+                                    style="width: 120px; height: 120px; object-fit: cover;"
+                                >
+                            </div>
+                            <small class="d-block text-secondary mt-2">Foto de perfil profissional</small>
+                        </div>
+
                         <div class="col-md-6">
                             <label class="form-label" for="full_name">Nome completo</label>
-                            <input id="full_name" name="full_name" class="form-control" value="{{ barber.full_name if barber else '' }}" required>
+                            <input id="full_name" name="full_name" class="form-control" value="{{ barber.full_name if barber else '' }}" required placeholder="Ex: Carlos Silva">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="phone">Telefone</label>
-                            <input id="phone" name="phone" class="form-control" value="{{ barber.phone if barber else '' }}" required>
+                            <label class="form-label" for="phone">Telefone / WhatsApp</label>
+                            <input id="phone" name="phone" class="form-control" value="{{ barber.phone if barber else '' }}" required placeholder="Ex: (87) 99999-0000">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="specialty">Especialidade</label>
-                            <input id="specialty" name="specialty" class="form-control" value="{{ barber.specialty if barber else '' }}">
+                            <input id="specialty" name="specialty" class="form-control" value="{{ barber.specialty if barber else '' }}" placeholder="Ex: Cortes clássicos e Barba">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="status">Status</label>
@@ -37,15 +52,81 @@
                                 <option value="inactive" {% if barber and barber.status == 'inactive' %}selected{% endif %}>Inativo</option>
                             </select>
                         </div>
+
+                        <!-- Upload de Foto do Barbeiro -->
+                        <div class="col-12">
+                            <label class="form-label" for="photo_file">Enviar foto do profissional (computador/celular)</label>
+                            <input id="photo_file" name="photo_file" type="file" class="form-control" accept="image/jpeg,image/png,image/webp">
+                            <small class="form-text text-secondary">Formatos: JPG, PNG ou WEBP; até 5 MB.</small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="profile_photo_url">Ou informe a URL da foto (HTTPS)</label>
+                            <input id="profile_photo_url" name="profile_photo_url" type="url" class="form-control" value="{{ barber.profile_photo_url if barber else '' }}" placeholder="https://...">
+                            <small class="form-text text-secondary">Opcional. Se enviar um arquivo acima, ele terá prioridade sobre a URL.</small>
+                        </div>
+
+                        {% if barber and barber.profile_photo_url %}
+                        <div class="col-12">
+                            <div class="form-check p-3 bg-light rounded border">
+                                <input class="form-check-input" type="checkbox" id="remove_photo" name="remove_photo" value="1">
+                                <label class="form-check-label text-danger fw-semibold" for="remove_photo">
+                                    🗑️ Remover foto atual do perfil
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div class="mt-4 d-flex justify-content-end gap-2">
                         <a href="{{ url_for('main.barbers') }}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-dark">Salvar</button>
+                        <button type="submit" class="btn btn-dark">Salvar profissional</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    const photoFileInput = document.getElementById("photo_file");
+    const photoUrlInput = document.getElementById("profile_photo_url");
+    const photoPreview = document.getElementById("barber_photo_preview");
+    const removePhotoCheck = document.getElementById("remove_photo");
+    const defaultSrc = photoPreview.src;
+
+    if (photoFileInput) {
+        photoFileInput.addEventListener("change", function () {
+            const file = photoFileInput.files[0];
+            if (file) {
+                photoPreview.src = URL.createObjectURL(file);
+                if (removePhotoCheck) removePhotoCheck.checked = false;
+            }
+        });
+    }
+
+    if (photoUrlInput) {
+        photoUrlInput.addEventListener("input", function () {
+            if (photoFileInput.files.length) return;
+            if (photoUrlInput.value.startsWith("https://")) {
+                photoPreview.src = photoUrlInput.value;
+                if (removePhotoCheck) removePhotoCheck.checked = false;
+            } else if (!photoUrlInput.value.trim()) {
+                photoPreview.src = defaultSrc;
+            }
+        });
+    }
+
+    if (removePhotoCheck) {
+        removePhotoCheck.addEventListener("change", function () {
+            if (removePhotoCheck.checked) {
+                photoPreview.src = "https://ui-avatars.com/api/?name=Sem+Foto&background=999999&color=ffffff&size=200";
+                if (photoFileInput) photoFileInput.value = "";
+                if (photoUrlInput) photoUrlInput.value = "";
+            } else {
+                photoPreview.src = defaultSrc;
+            }
+        });
+    }
+</script>
 {% endblock %}

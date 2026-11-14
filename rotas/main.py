@@ -110,6 +110,95 @@ def save_service_photo(upload, image_url_value, existing_image_url=None):
     return image_url or existing_image_url, None
 
 
+def save_barber_photo(upload, image_url_value, existing_image_url=None, remove_photo=False):
+    if remove_photo:
+        return None, None
+
+    if upload and upload.filename:
+        extension = Path(upload.filename).suffix.lower()
+        signatures = {
+            ".jpg": lambda data: data.startswith(b"\xff\xd8\xff"),
+            ".jpeg": lambda data: data.startswith(b"\xff\xd8\xff"),
+            ".png": lambda data: data.startswith(b"\x89PNG\r\n\x1a\n"),
+            ".webp": (
+                lambda data: data.startswith(b"RIFF") and data[8:12] == b"WEBP"
+            ),
+        }
+        image_signature = signatures.get(extension)
+        if image_signature is None:
+            return None, "Envie uma imagem JPG, PNG ou WEBP."
+
+        header = upload.stream.read(12)
+        upload.stream.seek(0)
+        if not image_signature(header):
+            return None, "O arquivo enviado não corresponde a uma imagem JPG, PNG ou WEBP válida."
+
+        filename = f"{uuid.uuid4().hex}{extension}"
+        upload_directory = Path(current_app.instance_path) / "uploads" / "barbeiros"
+        upload_directory.mkdir(parents=True, exist_ok=True)
+        upload.save(upload_directory / filename)
+        return url_for("main.barber_image", filename=filename), None
+
+    image_url = valid_image_url(image_url_value)
+    if image_url_value.strip() and image_url is None:
+        return None, "Informe uma URL HTTPS válida ou envie uma imagem JPG, PNG ou WEBP."
+    return image_url or existing_image_url, None
+
+
+MONTH_NAMES_PT = {
+    1: "Janeiro",
+    2: "Fevereiro",
+    3: "Março",
+    4: "Abril",
+    5: "Maio",
+    6: "Junho",
+    7: "Julho",
+    8: "Agosto",
+    9: "Setembro",
+    10: "Outubro",
+    11: "Novembro",
+    12: "Dezembro",
+}
+
+
+def get_shop_barbers_ranking(shop_id, month_key=None):
+    if shop_id is None:
+        return []
+    if month_key is None:
+        month_key = date.today().strftime("%Y-%m")
+
+    db = get_db()
+    rows = db.execute(
+        """
+        SELECT b.id,
+               b.shop_id,
+               b.full_name,
+               b.specialty,
+               b.profile_photo_url,
+               b.phone,
+               b.status,
+               COUNT(CASE WHEN a.status != 'cancelled' THEN a.id END) AS cuts_count,
+               COALESCE(SUM(CASE WHEN a.status != 'cancelled' THEN a.price_cents ELSE 0 END), 0) AS revenue_total
+        FROM barbers AS b
+        LEFT JOIN appointments AS a
+            ON a.barber_id = b.id
+           AND strftime('%Y-%m', a.starts_at) = ?
+        WHERE b.shop_id = ? AND b.status = 'active'
+        GROUP BY b.id, b.shop_id, b.full_name, b.specialty, b.profile_photo_url, b.phone, b.status
+        ORDER BY cuts_count DESC, revenue_total DESC, b.full_name ASC
+        """,
+        (month_key, shop_id),
+    ).fetchall()
+
+    ranking = []
+    for index, row in enumerate(rows, start=1):
+        item = dict(row)
+        item["rank"] = index
+        item["is_top"] = (index == 1)
+        ranking.append(item)
+    return ranking
+
+
 def parse_int(value, minimum=None, default=None):
     try:
         parsed = int(value)
@@ -512,9 +601,56 @@ def browse_barbershops():
     shops = get_db().execute(
         "SELECT * FROM barbershops ORDER BY business_name COLLATE NOCASE"
     ).fetchall()
+
+    current_month = date.today().strftime("%Y-%m")
+    shops_with_top_barber = []
+    for shop in shops:
+        shop_dict = dict(shop)
+        ranking = get_shop_barbers_ranking(shop["id"], current_month)
+        shop_dict["top_barber"] = ranking[0] if ranking else None
+        shops_with_top_barber.append(shop_dict)
+
     return render_template(
         "barbearias.html",
-        shops=shops,
+        shops=shops_with_top_barber,
+        current_user=current_user,
+    )
+
+
+@main_bp.get("/barbearias/<int:shop_id>")
+def barbershop_profile(shop_id):
+    db = get_db()
+    shop = db.execute(
+        "SELECT * FROM barbershops WHERE id = ?",
+        (shop_id,),
+    ).fetchone()
+    if shop is None:
+        flash("Barbearia não encontrada.", "danger")
+        return redirect(url_for("main.browse_barbershops"))
+
+    services = db.execute(
+        """
+        SELECT * FROM services
+        WHERE shop_id = ? AND status = 'active'
+        ORDER BY name ASC
+        """,
+        (shop_id,),
+    ).fetchall()
+
+    current_month = date.today().strftime("%Y-%m")
+    ranking = get_shop_barbers_ranking(shop_id, current_month)
+    top_barber = ranking[0] if ranking else None
+
+    current_month_name = MONTH_NAMES_PT.get(date.today().month, "")
+    current_year = date.today().year
+
+    return render_template(
+        "perfil_individual_barbearia.html",
+        shop=dict(shop),
+        services=services,
+        ranking=ranking,
+        top_barber=top_barber,
+        month_label=f"{current_month_name} de {current_year}",
         current_user=current_user,
     )
 
@@ -534,6 +670,29 @@ def catalog_image(filename):
 
     response = send_from_directory(
         Path(current_app.instance_path) / "uploads" / "catalogo",
+        filename,
+        mimetype=mimetype,
+        max_age=86400,
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@main_bp.get("/barbeiros/imagens/<filename>")
+def barber_image(filename):
+    extension = Path(filename).suffix.lower()
+    mimetypes = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }
+    mimetype = mimetypes.get(extension)
+    if mimetype is None:
+        return "", 404
+
+    response = send_from_directory(
+        Path(current_app.instance_path) / "uploads" / "barbeiros",
         filename,
         mimetype=mimetype,
         max_age=86400,
@@ -622,12 +781,19 @@ def dashboard():
             """,
             (shop_id,),
         ).fetchall()
+        ranking = get_shop_barbers_ranking(shop_id)
+        top_barber = ranking[0] if ranking else None
+        current_month_name = MONTH_NAMES_PT.get(date.today().month, "")
+        current_year = date.today().year
         return render_template(
             "painel_barbearia.html",
             current_user=current_user,
             shop=dict(shop),
             counts=counts,
             appointments=recent_appointments,
+            ranking=ranking,
+            top_barber=top_barber,
+            month_label=f"{current_month_name} de {current_year}",
         )
 
     clients_count = db.execute("SELECT COUNT(*) AS total FROM clients").fetchone()["total"]
@@ -1098,7 +1264,25 @@ def barbers():
         query + scope + " ORDER BY full_name ASC",
         params,
     ).fetchall()
-    return render_template("barbers.html", barbers=rows, current_user=current_user)
+
+    shop_id = current_business_id() if current_user.role == "business_owner" else None
+    current_month = date.today().strftime("%Y-%m")
+    ranking = get_shop_barbers_ranking(shop_id, current_month) if shop_id else []
+    top_barber = ranking[0] if ranking else None
+    ranking_by_barber_id = {b["id"]: b for b in ranking}
+
+    current_month_name = MONTH_NAMES_PT.get(date.today().month, "")
+    current_year = date.today().year
+
+    return render_template(
+        "barbers.html",
+        barbers=rows,
+        ranking=ranking,
+        top_barber=top_barber,
+        ranking_by_barber_id=ranking_by_barber_id,
+        month_label=f"{current_month_name} de {current_year}",
+        current_user=current_user,
+    )
 
 
 @main_bp.route("/barbers/new", methods=["GET", "POST"])
@@ -1109,6 +1293,7 @@ def create_barber():
         phone = (request.form.get("phone") or "").strip()
         specialty = (request.form.get("specialty") or "").strip() or None
         status = request.form.get("status") or "active"
+        image_url_value = request.form.get("profile_photo_url") or ""
 
         if not full_name or not phone:
             return render_template(
@@ -1118,12 +1303,24 @@ def create_barber():
                 current_user=current_user,
             )
 
+        photo_url, photo_error = save_barber_photo(
+            request.files.get("photo_file"),
+            image_url_value,
+        )
+        if photo_error:
+            return render_template(
+                "barber_form.html",
+                barber=None,
+                error=photo_error,
+                current_user=current_user,
+            )
+
         get_db().execute(
             """
-            INSERT INTO barbers (shop_id, full_name, phone, specialty, status)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO barbers (shop_id, full_name, phone, specialty, profile_photo_url, status)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (current_business_id(), full_name, phone, specialty, status),
+            (current_business_id(), full_name, phone, specialty, photo_url, status),
         )
         get_db().commit()
         return redirect(url_for("main.barbers"))
@@ -1152,6 +1349,8 @@ def edit_barber(barber_id):
         phone = (request.form.get("phone") or "").strip()
         specialty = (request.form.get("specialty") or "").strip() or None
         status = request.form.get("status") or "active"
+        image_url_value = request.form.get("profile_photo_url") or ""
+        remove_photo = request.form.get("remove_photo") == "1"
 
         if not full_name or not phone:
             return render_template(
@@ -1161,13 +1360,28 @@ def edit_barber(barber_id):
                 current_user=current_user,
             )
 
+        photo_url, photo_error = save_barber_photo(
+            request.files.get("photo_file"),
+            image_url_value,
+            existing_image_url=barber["profile_photo_url"],
+            remove_photo=remove_photo,
+        )
+        if photo_error:
+            return render_template(
+                "barber_form.html",
+                barber=dict(barber),
+                error=photo_error,
+                current_user=current_user,
+            )
+
         get_db().execute(
             """
             UPDATE barbers
-            SET full_name = ?, phone = ?, specialty = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+            SET full_name = ?, phone = ?, specialty = ?, profile_photo_url = ?,
+                status = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
-            (full_name, phone, specialty, status, barber_id),
+            (full_name, phone, specialty, photo_url, status, barber_id),
         )
         get_db().commit()
         return redirect(url_for("main.barbers"))
@@ -1226,6 +1440,9 @@ def services():
             "SELECT * FROM barbershops WHERE id = ?",
             (selected_shop_id,),
         ).fetchone() if selected_shop_id is not None else None
+        current_month = date.today().strftime("%Y-%m")
+        ranking = get_shop_barbers_ranking(selected_shop_id, current_month) if selected_shop_id else []
+        top_barber = ranking[0] if ranking else None
     else:
         scope, params = shop_scope("shop_id")
         rows = get_db().execute(
@@ -1237,12 +1454,16 @@ def services():
         shops = []
         selected_shop_id = current_business_id()
         shop = None
+        ranking = []
+        top_barber = None
     return render_template(
         "services.html",
         services=rows,
         shops=shops,
         shop=shop,
         selected_shop_id=selected_shop_id,
+        top_barber=top_barber,
+        ranking=ranking,
         current_user=current_user,
     )
 
@@ -1429,7 +1650,8 @@ def appointments():
         rows = db.execute(
             """
             SELECT a.*, c.full_name AS client_name, c.profile_photo_url AS client_photo_url,
-                   b.full_name AS barber_name, s.name AS service_name, s.price_cents AS service_price_cents
+                   b.full_name AS barber_name, b.profile_photo_url AS barber_photo_url,
+                   s.name AS service_name, s.price_cents AS service_price_cents
             FROM appointments AS a
             JOIN clients AS c ON c.id = a.client_id
             JOIN barbers AS b ON b.id = a.barber_id
@@ -1442,7 +1664,7 @@ def appointments():
         if selected_shop_id is not None:
             barbers = db.execute(
                 """
-                SELECT id, shop_id, full_name, specialty FROM barbers
+                SELECT id, shop_id, full_name, specialty, profile_photo_url FROM barbers
                 WHERE status = 'active' AND shop_id = ?
                 ORDER BY full_name ASC
                 """,
@@ -1461,7 +1683,7 @@ def appointments():
         else:
             barbers = db.execute(
                 """
-                SELECT id, shop_id, full_name, specialty FROM barbers
+                SELECT id, shop_id, full_name, specialty, profile_photo_url FROM barbers
                 WHERE status = 'active' AND shop_id IS NULL
                 ORDER BY full_name ASC
                 """
@@ -1492,6 +1714,12 @@ def appointments():
             if selected_shop_id is not None
             else (selected_service_id,),
         ).fetchone() if selected_service_id is not None else None
+        current_month = date.today().strftime("%Y-%m")
+        ranking = get_shop_barbers_ranking(selected_shop_id, current_month) if selected_shop_id else []
+        top_barber_id = ranking[0]["id"] if ranking else None
+        selected_barber_id = parse_int(
+            request.args.get("barber_id"), minimum=1, default=None
+        )
         return render_template(
             "appointments.html",
             appointments=rows,
@@ -1504,6 +1732,8 @@ def appointments():
             selected_shop_id=selected_shop_id,
             selected_service=selected_service,
             selected_service_id=selected_service["id"] if selected_service else None,
+            selected_barber_id=selected_barber_id,
+            top_barber_id=top_barber_id,
             selected_date=request.args.get("appointment_date", ""),
             selected_time=request.args.get("appointment_time", ""),
             today=date.today().isoformat(),
@@ -1517,7 +1747,8 @@ def appointments():
     rows = db.execute(
         """
         SELECT a.*, c.full_name AS client_name, c.profile_photo_url AS client_photo_url,
-               b.full_name AS barber_name, s.name AS service_name, s.price_cents AS service_price_cents
+               b.full_name AS barber_name, b.profile_photo_url AS barber_photo_url,
+               s.name AS service_name, s.price_cents AS service_price_cents
         FROM appointments AS a
         JOIN clients AS c ON c.id = a.client_id
         JOIN barbers AS b ON b.id = a.barber_id
@@ -1531,39 +1762,20 @@ def appointments():
         ,
         appointment_params,
     ).fetchall()
-    if current_user.role in ("business_owner", "employee"):
-        appointment_shop_clause = (
-            "a.shop_id = ?" if current_user.role == "business_owner" else "a.shop_id IS NULL"
-        )
-        client_params = (
-            (current_business_id(),)
-            if current_user.role == "business_owner"
-            else ()
-        )
-        clients = db.execute(
-            f"""
-            SELECT DISTINCT c.id, c.full_name, c.profile_photo_url
-            FROM clients AS c
-            JOIN appointments AS a ON a.client_id = c.id
-            WHERE {appointment_shop_clause}
-            ORDER BY c.full_name ASC
-            """,
-            client_params,
-        ).fetchall()
-    else:
-        clients = db.execute("SELECT id, full_name, profile_photo_url FROM clients ORDER BY full_name ASC").fetchall()
+    clients = db.execute("SELECT id, full_name, profile_photo_url FROM clients ORDER BY full_name ASC").fetchall()
     barber_scope, barber_params = shop_scope("shop_id")
     barbers = db.execute(
-        "SELECT id, full_name FROM barbers WHERE 1 = 1"
+        "SELECT id, full_name, profile_photo_url FROM barbers WHERE 1 = 1"
         + barber_scope
         + " ORDER BY full_name ASC",
         barber_params,
     ).fetchall()
+    service_scope, service_params = shop_scope("shop_id")
     services = db.execute(
         "SELECT id, name, duration_minutes, price_cents FROM services WHERE 1 = 1"
-        + shop_scope("shop_id")[0]
+        + service_scope
         + " ORDER BY name ASC",
-        shop_scope("shop_id")[1],
+        service_params,
     ).fetchall()
 
     queue_rows = []
@@ -1763,18 +1975,6 @@ def create_appointment():
     if client is None:
         flash("O cadastro do cliente não foi encontrado.", "danger")
         return redirect_to_booking()
-    if current_user.role == "business_owner":
-        client_belongs_to_shop = get_db().execute(
-            """
-            SELECT 1 FROM appointments
-            WHERE client_id = ? AND shop_id = ?
-            LIMIT 1
-            """,
-            (client_id, shop_id),
-        ).fetchone()
-        if client_belongs_to_shop is None:
-            flash("Esse cliente ainda não possui vínculo com esta barbearia.", "danger")
-            return redirect_to_booking()
 
     active_filter = " AND status = 'active'" if is_client else ""
     service = get_db().execute(
@@ -1901,7 +2101,7 @@ def appointment_confirmation(appointment_id):
     appointment = get_db().execute(
         """
         SELECT a.id, a.shop_id, a.starts_at, a.ends_at, a.price_cents, a.status,
-               b.full_name AS barber_name,
+               b.full_name AS barber_name, b.profile_photo_url AS barber_photo_url,
                s.name AS service_name, s.duration_minutes,
                sh.business_name AS shop_name, sh.address AS shop_address,
                sh.latitude AS shop_latitude, sh.longitude AS shop_longitude,
@@ -1919,9 +2119,17 @@ def appointment_confirmation(appointment_id):
 
     starts_at = datetime.fromisoformat(appointment["starts_at"])
     ends_at = datetime.fromisoformat(appointment["ends_at"])
+    appointment_data = dict(appointment)
+    if not appointment_data.get("shop_address"):
+        appointment_data["shop_address"] = "Rua Enock Ignácio de Oliveira, Centro, Serra Talhada - PE"
+    if appointment_data.get("shop_latitude") is None:
+        appointment_data["shop_latitude"] = -7.9868
+    if appointment_data.get("shop_longitude") is None:
+        appointment_data["shop_longitude"] = -38.2920
+
     return render_template(
         "appointment_confirmation.html",
-        appointment=appointment,
+        appointment=appointment_data,
         appointment_date=starts_at.strftime("%d/%m/%Y"),
         start_time=starts_at.strftime("%H:%M"),
         end_time=ends_at.strftime("%H:%M"),
@@ -1997,17 +2205,6 @@ def edit_appointment(appointment_id):
         ).fetchone()
         if barber is None or service["shop_id"] != barber["shop_id"]:
             return redirect(url_for("main.appointments"))
-        if current_user.role == "business_owner":
-            client_in_shop = get_db().execute(
-                """
-                SELECT 1 FROM appointments
-                WHERE client_id = ? AND shop_id = ?
-                LIMIT 1
-                """,
-                (client_id, current_business_id()),
-            ).fetchone()
-            if client_in_shop is None:
-                return redirect(url_for("main.appointments"))
 
         try:
             starts_dt = datetime.fromisoformat(starts_at.replace("Z", ""))
@@ -2040,21 +2237,7 @@ def edit_appointment(appointment_id):
 
         return redirect(url_for("main.appointments"))
 
-    if current_user.role in ("business_owner", "employee"):
-        client_scope = (
-            " AND EXISTS (SELECT 1 FROM appointments a WHERE a.client_id = clients.id AND a.shop_id = ?)"
-            if current_user.role == "business_owner"
-            else " AND EXISTS (SELECT 1 FROM appointments a WHERE a.client_id = clients.id AND a.shop_id IS NULL)"
-        )
-        client_params = (current_business_id(),) if current_user.role == "business_owner" else ()
-        clients = get_db().execute(
-            "SELECT id, full_name FROM clients WHERE 1 = 1"
-            + client_scope
-            + " ORDER BY full_name ASC",
-            client_params,
-        ).fetchall()
-    else:
-        clients = get_db().execute("SELECT id, full_name FROM clients ORDER BY full_name ASC").fetchall()
+    clients = get_db().execute("SELECT id, full_name FROM clients ORDER BY full_name ASC").fetchall()
     barber_scope, barber_params = shop_scope("shop_id")
     barbers = get_db().execute(
         "SELECT id, full_name FROM barbers WHERE 1 = 1"

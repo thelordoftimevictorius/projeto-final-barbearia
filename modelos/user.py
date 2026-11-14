@@ -45,7 +45,3 @@ def authenticate_user(email, password):
     if user is None or not user.check_password(password):
         return None
     return user if user.is_active else None
-
-
-def load_user(user_id):
-    return get_user_by_id(user_id)

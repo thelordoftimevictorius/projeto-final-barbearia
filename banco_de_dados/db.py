@@ -32,7 +32,9 @@ def init_db():
     ensure_user_role_support()
     ensure_barbershop_columns()
     ensure_client_profile_photo_column()
+    ensure_barber_profile_photo_column()
     ensure_client_user_id_column()
+    ensure_appointments_fk_health()
     database.executescript(
         """
         CREATE INDEX IF NOT EXISTS idx_barbers_shop_status
@@ -151,6 +153,18 @@ def ensure_client_profile_photo_column():
         )
 
 
+def ensure_barber_profile_photo_column():
+    database = get_db()
+    columns = database.execute(
+        "PRAGMA table_info(barbers)"
+    ).fetchall()
+    column_names = {row[1] for row in columns}
+    if "profile_photo_url" not in column_names:
+        database.execute(
+            "ALTER TABLE barbers ADD COLUMN profile_photo_url TEXT"
+        )
+
+
 def ensure_client_user_id_column():
     database = get_db()
     columns = database.execute("PRAGMA table_info(clients)").fetchall()
@@ -187,6 +201,48 @@ def ensure_client_user_id_column():
         WHERE user_id IS NOT NULL
         """
     )
+
+
+def ensure_appointments_fk_health():
+    database = get_db()
+    table = database.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'appointments'"
+    ).fetchone()
+    if table and "users_legacy" in (table["sql"] or ""):
+        database.execute("PRAGMA foreign_keys = OFF")
+        try:
+            database.executescript(
+                """
+                BEGIN TRANSACTION;
+                CREATE TABLE appointments_fixed (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    shop_id INTEGER REFERENCES barbershops (id) ON DELETE RESTRICT,
+                    client_id INTEGER NOT NULL REFERENCES clients (id) ON DELETE RESTRICT,
+                    barber_id INTEGER NOT NULL REFERENCES barbers (id) ON DELETE RESTRICT,
+                    service_id INTEGER NOT NULL REFERENCES services (id) ON DELETE RESTRICT,
+                    starts_at TEXT NOT NULL,
+                    ends_at TEXT NOT NULL,
+                    price_cents INTEGER NOT NULL CHECK (price_cents >= 0),
+                    status TEXT NOT NULL DEFAULT 'scheduled'
+                        CHECK (status IN ('scheduled', 'confirmed', 'completed', 'cancelled', 'no_show')),
+                    notes TEXT,
+                    created_by INTEGER REFERENCES users (id) ON DELETE SET NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    CHECK (ends_at > starts_at)
+                );
+                INSERT INTO appointments_fixed (
+                    id, shop_id, client_id, barber_id, service_id, starts_at, ends_at, price_cents, status, notes, created_by, created_at, updated_at
+                )
+                SELECT id, shop_id, client_id, barber_id, service_id, starts_at, ends_at, price_cents, status, notes, created_by, created_at, updated_at
+                FROM appointments;
+                DROP TABLE appointments;
+                ALTER TABLE appointments_fixed RENAME TO appointments;
+                COMMIT;
+                """
+            )
+        finally:
+            database.execute("PRAGMA foreign_keys = ON")
 
 
 def create_default_admin():
