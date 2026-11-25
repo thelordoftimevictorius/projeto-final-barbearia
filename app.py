@@ -4,7 +4,12 @@ from flask import Flask
 from flask_login import LoginManager
 
 from config import Config
-from banco_de_dados.db import close_db, create_default_users, init_db
+from banco_de_dados.db import (
+    close_db,
+    create_default_users,
+    ensure_demo_data,
+    init_db,
+)
 from rotas.main import main_bp
 
 
@@ -42,6 +47,8 @@ def create_app(test_config=None):
     with app.app_context():
         init_db()
         create_default_users()
+        if not app.testing:
+            ensure_demo_data()
 
     login_manager.init_app(app)
     login_manager.login_view = "main.login"

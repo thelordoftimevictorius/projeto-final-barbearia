@@ -343,3 +343,13 @@ def create_default_users():
     create_default_admin()
     create_default_employee()
     create_default_client()
+
+
+def ensure_demo_data():
+    database = get_db()
+    count_row = database.execute("SELECT COUNT(*) FROM barbershops").fetchone()
+    if count_row and count_row[0] == 0:
+        from banco_de_dados.seeder import seed_demo_data
+
+        seed_demo_data(database)
+
